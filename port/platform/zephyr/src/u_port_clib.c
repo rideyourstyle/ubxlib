@@ -24,7 +24,7 @@
 # include "u_cfg_override.h" // For a customer's configuration override
 #endif
 
-#include "random/rand32.h"
+#include "zephyr/random/rand32.h"
 #include "string.h"
 
 #include "u_assert.h"

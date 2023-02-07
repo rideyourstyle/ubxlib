@@ -36,10 +36,10 @@
 typedef _TIME_T_ time_t;
 #endif
 
-#if !defined(__suseconds_t_defined)
-#define __suseconds_t_defined
-typedef _SUSECONDS_T_ suseconds_t;
-#endif
+//#if !defined(__suseconds_t_defined)
+//#define __suseconds_t_defined
+//typedef _SUSECONDS_T_ suseconds_t;
+//#endif
 
 /*
  * Structure returned by gettimeofday(2) system call, and used in other calls.

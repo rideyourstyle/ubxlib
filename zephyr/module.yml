@@ -1,5 +1,5 @@
 build:
   cmake: port/platform/zephyr/
   kconfig: port/platform/zephyr/Kconfig
-  depends:
-    - mbedtls
+#  depends:
+#    - mbedtls

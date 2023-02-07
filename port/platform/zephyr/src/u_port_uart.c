@@ -27,10 +27,10 @@
 #endif
 
 #include <zephyr/types.h>
-#include <zephyr.h>
-#include <drivers/uart.h>
+#include <zephyr/kernel.h>
+#include <zephyr/drivers/uart.h>
 
-#include <device.h>
+#include <zephyr/device.h>
 #include <soc.h>
 
 #include "stddef.h"    // NULL, size_t etc.
@@ -338,7 +338,7 @@ int32_t uPortUartInit()
                     dev = DEVICE_DT_GET_OR_NULL(DT_NODELABEL(uart0));
                     break;
                 case 1:
-                    dev = DEVICE_DT_GET_OR_NULL(DT_NODELABEL(uart1));
+                    dev = DEVICE_DT_GET_OR_NULL(DT_NODELABEL(usart1));
                     break;
                 case 2:
                     dev = DEVICE_DT_GET_OR_NULL(DT_NODELABEL(uart2));
@@ -353,6 +353,8 @@ int32_t uPortUartInit()
 
             gUartData[x].pDevice = dev;
             gUartData[x].pBuffer = NULL;
+
+            printk("%d: dev: %i\n", x, dev );
         }
     }
 

@@ -26,6 +26,7 @@
  * INCLUDE FILES
  * -------------------------------------------------------------- */
 
+#include <zephyr/kernel.h>
 #include "stdlib.h"      // malloc()/free().
 #include "u_compiler.h"
 
@@ -51,12 +52,12 @@
 
 U_WEAK void *pUPortMalloc(size_t sizeBytes)
 {
-    return malloc(sizeBytes);
+    return k_malloc(sizeBytes);
 }
 
 U_WEAK void uPortFree(void *pMemory)
 {
-    free(pMemory);
+    k_free(pMemory);
 }
 
 
