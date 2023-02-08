@@ -61,7 +61,7 @@
  * There are up to 4 UART HW blocks available, how many are
  * connected depends on the chip revision.
  */
-#define U_PORT_UART_MAX_NUM 4
+#define U_PORT_UART_MAX_NUM 1 // TODO: check why its not already defined
 #endif
 
 /* ----------------------------------------------------------------
@@ -335,16 +335,16 @@ int32_t uPortUartInit()
                     break;
 #else
                 case 0:
-                    dev = DEVICE_DT_GET_OR_NULL(DT_NODELABEL(uart0));
+                    dev = DEVICE_DT_GET_OR_NULL(DT_CHOSEN(ubx_modem));
                     break;
                 case 1:
-                    dev = DEVICE_DT_GET_OR_NULL(DT_NODELABEL(usart1));
+                    dev = DEVICE_DT_GET_OR_NULL(DT_CHOSEN(ubx_uart_1));
                     break;
                 case 2:
-                    dev = DEVICE_DT_GET_OR_NULL(DT_NODELABEL(uart2));
+                    dev = DEVICE_DT_GET_OR_NULL(DT_CHOSEN(ubx_uart_2));
                     break;
                 case 3:
-                    dev = DEVICE_DT_GET_OR_NULL(DT_NODELABEL(uart3));
+                    dev = DEVICE_DT_GET_OR_NULL(DT_CHOSEN(ubx_uart_3));
                     break;
                 default:
                     break;
