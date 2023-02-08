@@ -354,7 +354,7 @@ int32_t uPortUartInit()
             gUartData[x].pDevice = dev;
             gUartData[x].pBuffer = NULL;
 
-            printk("%d: dev: %i\n", x, dev );
+            printk("%d: dev: %p\n", x, dev );
         }
     }
 
