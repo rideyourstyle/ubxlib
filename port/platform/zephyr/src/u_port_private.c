@@ -219,7 +219,7 @@ static void timerCallbackInt(struct k_timer *pKTimer)
  * PUBLIC FUNCTIONS SPECIFIC TO THIS PORT: MISC
  * -------------------------------------------------------------- */
 
-// Initalise the private stuff.
+// Initialise the private stuff.
 int32_t uPortPrivateInit()
 {
     int32_t errorCodeOrEventQueueHandle = (int32_t) U_ERROR_COMMON_SUCCESS;
@@ -286,9 +286,11 @@ const struct device *pUPortPrivateGetGpioDevice(int32_t pin)
 #else
     int32_t port = pin / GPIO_MAX_PINS_PER_PORT;
     if (port == 0) {
-        pDev = DEVICE_DT_GET_OR_NULL(DT_NODELABEL(gpio0));
+        pDev = DEVICE_DT_GET_OR_NULL(DT_NODELABEL(gpioa));
     } else if (port == 1) {
-        pDev = DEVICE_DT_GET_OR_NULL(DT_NODELABEL(gpio1));
+        pDev = DEVICE_DT_GET_OR_NULL(DT_NODELABEL(gpiob));
+    } else if (port == 2) {
+        pDev = DEVICE_DT_GET_OR_NULL(DT_NODELABEL(gpioc));
     }
 #endif
     return pDev;

@@ -31,9 +31,9 @@
  * COMPILE-TIME MACROS FOR ZEPHYR: HEAP
  * -------------------------------------------------------------- */
 
-/** Not stricty speaking part of the OS but there's nowhere better
- * to put this.  Set this to 1 if the C library does not free memory
- * that it has alloced internally when a task is deleted.
+/** Not strictly speaking part of the OS but there's nowhere better
+ * to put this. Set this to 1 if the C library does not free memory
+ * that it has allocated internally when a task is deleted.
  * For instance, newlib when it is compiled in a certain way
  * does this on some platforms.
  *

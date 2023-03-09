@@ -765,6 +765,7 @@ int32_t uCellSockCreate(uDeviceHandle_t cellHandle,
             uAtClientCommandStop(atHandle);
             uAtClientResponseStart(atHandle, "+USOCR:");
             pSocket->sockHandleModule = uAtClientReadInt(atHandle);
+
             uAtClientResponseStop(atHandle);
             if (uAtClientUnlock(atHandle) == 0) {
                 // All good
@@ -832,7 +833,7 @@ int32_t uCellSockConnect(uDeviceHandle_t cellHandle,
                         errnoLocal = U_SOCK_ENONE;
                     }
                     if (deviceError.type != U_AT_CLIENT_DEVICE_ERROR_TYPE_NO_ERROR) {
-                        // Got an AT interace error, see
+                        // Got an AT interface error, see
                         // what the module's socket error
                         // number has to say for debug purposes
                         doUsoer(atHandle);
@@ -869,7 +870,7 @@ int32_t uCellSockClose(uDeviceHandle_t cellHandle,
             if (pSocket != NULL) {
                 errnoLocal = U_SOCK_EIO;
                 // Close the socket through the cellular module
-                // If have seen modules return ERROR to this
+                // I have seen modules return ERROR to this
                 // immediately so try a few times
                 deviceError.type = U_AT_CLIENT_DEVICE_ERROR_TYPE_ERROR;
                 for (size_t x = 3; (x > 0) &&
@@ -906,14 +907,14 @@ int32_t uCellSockClose(uDeviceHandle_t cellHandle,
                     pSocket->pAsyncClosedCallback = pCallback;
                     if (pCallback == NULL) {
                         // If no callback was given, or one
-                        // was given and the the module
+                        // was given and the module
                         // doesn't support asynchronous closure,
                         // call the trampoline from here
                         uAtClientCallback(atHandle, closedCallback,
                                           (void *) sockHandle);
                     }
                 } else {
-                    // Got an AT interace error, see
+                    // Got an AT interface error, see
                     // what the module's socket error
                     // number has to say for debug purposes
                     doUsoer(atHandle);
@@ -1402,7 +1403,12 @@ int32_t uCellSockReceiveFrom(uDeviceHandle_t cellHandle,
                         // They will get their received data, there
                         // is no need to worry.
                     }
-                    uAtClientUnlock(atHandle);
+                    if ((uAtClientUnlock(atHandle) != 0) || (x < 0)) {
+                        // Looks like the socket has gone
+                        pSocket->pendingBytes = 0;
+                        negErrnoLocalOrSize = -U_SOCK_EIO;
+                        doUsoer(atHandle);
+                    }
                 }
                 if (pSocket->pendingBytes > 0) {
                     // In the UDP case we HAVE to read the number
@@ -1601,7 +1607,7 @@ int32_t uCellSockWrite(uDeviceHandle_t cellHandle,
                             uAtClientResponseStop(atHandle);
                             // Note: the sentSize check below is because we have seen cases
                             // where the module returns just "OK", missing out the "+USOWR: x"
-                            // response; what to do when this happens?  The AT unlock check
+                            // response; what to do when this happens? The AT unlock check
                             // will pass because it has been sent an "OK", but has the data
                             // been sent or was the OK for a previous "AT" and we have somehow
                             // or other become unsynchronised with the module? Gonna assume
@@ -1708,7 +1714,12 @@ int32_t uCellSockRead(uDeviceHandle_t cellHandle,
                         // They will get their received data, there
                         // is no need to worry.
                     }
-                    uAtClientUnlock(atHandle);
+                    if ((uAtClientUnlock(atHandle) != 0) || (x < 0)) {
+                        // Looks like the socket has gone
+                        pSocket->pendingBytes = 0;
+                        negErrnoLocalOrSize = -U_SOCK_EIO;
+                        doUsoer(atHandle);
+                    }
                 }
                 if (pSocket->pendingBytes > 0) {
                     negErrnoLocalOrSize = U_SOCK_ENONE;

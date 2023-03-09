@@ -33,7 +33,6 @@
 
 #include "u_error_common.h"
 
-#include "zephyr/sys/printk.h"
 
 /* ----------------------------------------------------------------
  * COMPILE-TIME MACROS

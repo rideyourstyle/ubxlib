@@ -89,7 +89,7 @@ extern "C" {
 #ifndef U_CELL_NET_CONNECT_TIMEOUT_SECONDS
 /** The time in seconds allowed for a connection to complete.
  * This is a long time since, in the worst case, deep scan
- * on an NB1 network could take this long.  To shorten the
+ * on an NB1 network could take this long. To shorten the
  * connection time, pass a pKeepGoingCallback() parameter
  * to the connection function.
  */

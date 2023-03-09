@@ -64,6 +64,9 @@
 #include "u_short_range.h"
 #include "u_short_range_edm_stream.h"
 
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(ubx_at);
+
 /* ----------------------------------------------------------------
  * COMPILE-TIME MACROS
  * -------------------------------------------------------------- */
@@ -611,7 +614,7 @@ static void printLogDebug(const uAtClientDetailedDebug_t *pDebug,
     char c;
 
     for (size_t x = 0; x < number; x++) {
-        uPortLog("U_AT_CLIENT_%d-%d: %4d %3d",
+        LOG_INF("U_AT_CLIENT_%d-%d: %4d %3d",
                  pDebug->pClient->streamType,
                  pDebug->pClient->streamHandle,
                  x, pDebug->place);
@@ -621,14 +624,14 @@ static void printLogDebug(const uAtClientDetailedDebug_t *pDebug,
         } else if (pDebug->inUrc < 0) {
             c = '?';
         }
-        uPortLog(" %c @ %8d:", c, pDebug->timeMs);
-        uPortLog(" buffer 0x%08x (%d)  ri %d  l %d lb %d, ",
+        LOG_INF(" %c @ %8d:", c, pDebug->timeMs);
+        LOG_INF(" buffer 0x%08x (%d)  ri %d  l %d lb %d, ",
                  (int) pDebug->pDataBufferStart,
                  pDebug->dataBufferSize,
                  pDebug->dataBufferReadIndex,
                  pDebug->dataBufferLength,
                  pDebug->dataBufferLengthBuffered);
-        uPortLog(" pD 0x%08x pDI 0x%08x l %d x %d y %d z %d rl %d.\n",
+        LOG_INF(" pD 0x%08x pDI 0x%08x l %d x %d y %d z %d rl %d.",
                  (int) pDebug->pData,
                  (int) pDebug->pDataIntercept,
                  pDebug->length,
@@ -1034,27 +1037,28 @@ static void printAt(const uAtClientInstance_t *pClient,
     char c;
 
     if (pClient->printAtOn) {
-        for (size_t x = 0; x < length; x++) {
-            c = *pAt++;
-            if (!isprint((int32_t) c)) {
-#ifdef U_AT_CLIENT_PRINT_CONTROL_CHARACTERS
-                uPortLog("[%02x]", (unsigned char) c);
-#else
-                if (c == '\r') {
-                    // Convert \r\n into \n
-                    uPortLog("%c", '\n');
-                } else if (c == '\n') {
-                    // Do nothing
-                } else {
-                    // Print the hex
-                    uPortLog("[%02x]", (unsigned char) c);
-                }
-#endif
-            } else {
-                // Print the ASCII character
-                uPortLog("%c", c);
-            }
-        }
+        LOG_INF("%s", pAt);
+//        for (size_t x = 0; x < length; x++) {
+//            c = *pAt++;
+//            if (!isprint((int32_t) c)) {
+//#ifdef U_AT_CLIENT_PRINT_CONTROL_CHARACTERS
+//                uPortLog("[%02x]", (unsigned char) c);
+//#else
+//                if (c == '\r') {
+//                    // Convert \r\n into \n
+//                    uPortLog("%c", '\n');
+//                } else if (c == '\n') {
+//                    // Do nothing
+//                } else {
+//                    // Print the hex
+//                    uPortLog("[%02x]", (unsigned char) c);
+//                }
+//#endif
+//            } else {
+//                // Print the ASCII character
+//                uPortLog("%c", c);
+//            }
+//        }
     }
 }
 
@@ -1064,7 +1068,7 @@ static void setError(uAtClientInstance_t *pClient,
 {
     if (error != U_ERROR_COMMON_SUCCESS) {
         if (pClient->debugOn) {
-            uPortLog("U_AT_CLIENT_%d-%d: AT error %d.\n",
+            LOG_INF("U_AT_CLIENT_%d-%d: AT error %d.",
                      pClient->streamType, pClient->streamHandle,
                      error);
         }
@@ -1153,9 +1157,7 @@ static void bufferReset(const uAtClientInstance_t *pClient,
             // This should never occur, but if it did
             // it would not be good so best be safe.
             if (pClient->debugOn) {
-                uPortLog("U_AT_CLIENT_%d-%d: *** WARNING ***"
-                         " lengthBuffered (%d) > length (%d).\n",
-                         pBuffer->lengthBuffered, pBuffer->length);
+                LOG_INF("U_AT_CLIENT_%d-%d: *** WARNING *** lengthBuffered (%d) > length (%d).", pBuffer->lengthBuffered, pBuffer->length);
             }
             pBuffer->length = pBuffer->lengthBuffered;
         }
@@ -1184,8 +1186,8 @@ static void bufferRewind(const uAtClientInstance_t *pClient)
             // This should never occur, but if it did
             // it would not be good so best be safe.
             if (pClient->debugOn) {
-                uPortLog("U_AT_CLIENT_%d-%d: *** WARNING ***"
-                         " lengthBuffered (%d) < readIndex (%d).\n",
+                LOG_INF("U_AT_CLIENT_%d-%d: *** WARNING ***"
+                         " lengthBuffered (%d) < readIndex (%d).",
                          pBuffer->lengthBuffered, pBuffer->readIndex);
             }
             pBuffer->lengthBuffered = pBuffer->readIndex;
@@ -1302,8 +1304,8 @@ static bool bufferFill(uAtClientInstance_t *pClient,
         if (pClient->debugOn) {
             // Let the world know, even if we're in a callback,
             // as this is important.
-            uPortLog("U_AT_CLIENT_%d-%d: *** WARNING ***"
-                     " lengthBuffered (%d) < length (%d).\n",
+            LOG_INF("U_AT_CLIENT_%d-%d: *** WARNING ***"
+                     " lengthBuffered (%d) < length (%d).",
                      pReceiveBuffer->lengthBuffered,
                      pReceiveBuffer->length);
         }
@@ -1353,7 +1355,7 @@ static bool bufferFill(uAtClientInstance_t *pClient,
         if (!eventIsCallback) {
 #endif
             if (pClient->debugOn) {
-                uPortLog("U_AT_CLIENT_%d-%d: !!! overflow.\n",
+                LOG_INF("U_AT_CLIENT_%d-%d: !!! overflow.",
                          pClient->streamType, pClient->streamHandle);
             }
             printAt(pClient, U_AT_CLIENT_DATA_BUFFER_PTR(pReceiveBuffer),
@@ -1586,7 +1588,7 @@ static int32_t bufferReadChar(uAtClientInstance_t *pClient)
         } else {
             // Timeout
             if (pClient->debugOn) {
-                uPortLog("U_AT_CLIENT_%d-%d: timeout.\n",
+                LOG_INF("U_AT_CLIENT_%d-%d: timeout.",
                          pClient->streamType, pClient->streamHandle);
             }
             setError(pClient, U_ERROR_COMMON_DEVICE_ERROR);
@@ -1713,7 +1715,7 @@ static bool consumeToStopTag(uAtClientInstance_t *pClient)
             if (!found) {
                 setError(pClient, U_ERROR_COMMON_DEVICE_ERROR);
                 if (pClient->debugOn) {
-                    uPortLog("U_AT_CLIENT_%d-%d: stop tag not found.\n",
+                    LOG_INF("U_AT_CLIENT_%d-%d: stop tag not found.",
                              pClient->streamType, pClient->streamHandle);
                 }
             }
@@ -1924,7 +1926,7 @@ static void setDeviceError(uAtClientInstance_t *pClient,
         if (errorCode >= 0) {
             pClient->deviceError.code = errorCode;
             if (pClient->debugOn) {
-                uPortLog("U_AT_CLIENT_%d-%d: CME/CMS error code %d.\n",
+                LOG_INF("U_AT_CLIENT_%d-%d: CME/CMS error code %d.",
                          pClient->streamType, pClient->streamHandle,
                          errorCode);
             }
@@ -2456,8 +2458,8 @@ static void urcCallback(int32_t streamHandle, uint32_t eventBitmask,
                             // Don't do this if CLIB is leaky on this platform since
                             // it is the printf() that leaks
                             if (pClient->debugOn) {
-                                uPortLog("U_AT_CLIENT_%d-%d: possible URC data readable %d,"
-                                         " already buffered %u.\n", pClient->streamType,
+                                LOG_INF("U_AT_CLIENT_%d-%d: possible URC data readable %d,"
+                                         " already buffered %u.", pClient->streamType,
                                          pClient->streamHandle, sizeOrError,
                                          pReceiveBuffer->length - pReceiveBuffer->readIndex);
                             }
@@ -2501,7 +2503,7 @@ static void urcCallback(int32_t streamHandle, uint32_t eventBitmask,
                             // Don't do this if CLIB is leaky on this platform since
                             // it is the printf() that leaks
                             if (pClient->debugOn) {
-                                uPortLog("U_AT_CLIENT_%d-%d: URC checking done.\n",
+                                LOG_INF("U_AT_CLIENT_%d-%d: URC checking done.",
                                          pClient->streamType, pClient->streamHandle);
                             }
 #endif
@@ -3012,7 +3014,7 @@ int32_t uAtClientLockExtend(uAtClientHandle_t atHandle)
     return errorCode;
 }
 
-// Unlock the stream and kick off a receive
+// Unlock the stream and kick off a reception
 // if there is some data lounging around.
 int32_t uAtClientUnlock(uAtClientHandle_t atHandle)
 {
@@ -3707,8 +3709,8 @@ int32_t uAtClientSetUrcHandler(uAtClientHandle_t atHandle,
         } else {
             errorCode = U_ERROR_COMMON_SUCCESS;
             if (pClient->debugOn) {
-                uPortLog("U_AT_CLIENT_%d-%d: URC already added with prefix"
-                         " \"%s\".\n", pClient->streamType,
+                LOG_INF("U_AT_CLIENT_%d-%d: URC already added with prefix"
+                         " \"%s\".", pClient->streamType,
                          pClient->streamHandle, pPrefix);
             }
         }
@@ -3948,7 +3950,7 @@ void uAtClientFlush(uAtClientHandle_t atHandle)
     U_AT_CLIENT_LOCK_CLIENT_MUTEX(pClient);
 
     if (pClient->debugOn) {
-        uPortLog("U_AT_CLIENT_%d-%d: flush.\n", pClient->streamType,
+        LOG_INF("U_AT_CLIENT_%d-%d: flush.", pClient->streamType,
                  pClient->streamHandle);
     }
 

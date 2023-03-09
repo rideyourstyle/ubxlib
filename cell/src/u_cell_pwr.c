@@ -1278,7 +1278,7 @@ int32_t uCellPwrPrivateOn(uCellPrivateInstance_t *pInstance,
         ((pInstance->pinVInt < 0) &&
          (moduleIsAlive(pInstance, 1) == 0))) {
         uPortLog("U_CELL_PWR: powering on, module is already on.\n");
-        // Configure the module.  Since it was already
+        // Configure the module. Since it was already
         // powered on we might have been called from
         // a state where everything was already fine
         // and dandy so only switch the radio off at
@@ -1294,6 +1294,7 @@ int32_t uCellPwrPrivateOn(uCellPrivateInstance_t *pInstance,
             // we go any further
             quickPowerOff(pInstance, pKeepGoingCallback);
         }
+        uPortLog("%d", errorCode);
     }
     // Two goes at this, 'cos I've seen some module types
     // fail during initial configuration.

@@ -28,6 +28,9 @@
 # include "u_cfg_override.h" // For a customer's configuration override
 #endif
 
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(u_cell_net);
+
 #include "limits.h"    // INT_MAX
 #include "stdlib.h"    // atoi()
 #include "stddef.h"    // NULL, size_t etc.
@@ -273,84 +276,84 @@ static void setNetworkStatus(uCellPrivateInstance_t *pInstance,
         case U_CELL_NET_STATUS_NOT_REGISTERED:
             // Not (yet) registered (+CxREG: 0)
             if (printAllowed) {
-                uPortLog("%d: NReg\n", rat);
+                LOG_INF("%d: NReg", rat);
             }
             break;
         case U_CELL_NET_STATUS_REGISTERED_HOME:
             // Registered on the home network (+CxREG: 1)
             if (printAllowed) {
-                uPortLog("%d: RegH\n", rat);
+                LOG_INF("%d: RegH", rat);
             }
             break;
         case U_CELL_NET_STATUS_SEARCHING:
             // Searching for a network (+CxREG: 2)
             if (printAllowed) {
-                uPortLog("%d: Search\n", rat);
+                LOG_INF("%d: Search", rat);
             }
             break;
         case U_CELL_NET_STATUS_REGISTRATION_DENIED:
-            // Registeration denied (+CxREG: 3)
+            // Registration denied (+CxREG: 3)
             if (printAllowed) {
-                uPortLog("%d: Deny\n", rat);
+                LOG_INF("%d: Deny", rat);
             }
             break;
         case U_CELL_NET_STATUS_OUT_OF_COVERAGE:
             // Out of coverage (+CxREG: 4)
             if (printAllowed) {
-                uPortLog("%d: OoC\n", rat);
+                LOG_INF("%d: OoC", rat);
             }
             break;
         case U_CELL_NET_STATUS_REGISTERED_ROAMING:
             // Registered on a roaming network (+CxREG: 5)
             if (printAllowed) {
-                uPortLog("%d: RegR\n", rat);
+                LOG_INF("%d: RegR", rat);
             }
             break;
         case U_CELL_NET_STATUS_REGISTERED_SMS_ONLY_HOME:
             // Registered for SMS only on the home network
             // (+CxREG: 6)
             if (printAllowed) {
-                uPortLog("%d: RegS\n", rat);
+                LOG_INF("%d: RegS", rat);
             }
             break;
         case U_CELL_NET_STATUS_REGISTERED_SMS_ONLY_ROAMING:
             // Registered for SMS only on a roaming network
             // (+CxREG: 7)
             if (printAllowed) {
-                uPortLog("%d: RegS\n", rat);
+                LOG_INF("%d: RegS", rat);
             }
             break;
         case U_CELL_NET_STATUS_EMERGENCY_ONLY:
             // Registered for emergency service only (+CxREG: 8)
             if (printAllowed) {
-                uPortLog("%d: RegE\n", rat);
+                LOG_INF("%d: RegE", rat);
             }
             break;
         case U_CELL_NET_STATUS_REGISTERED_NO_CSFB_HOME:
             // Registered on the home network, CFSB not preferred
             // (+CxREG: 9)
             if (printAllowed) {
-                uPortLog("%d: RegNC\n", rat);
+                LOG_INF("%d: RegNC", rat);
             }
             break;
         case U_CELL_NET_STATUS_REGISTERED_NO_CSFB_ROAMING:
             // Registered on a roaming network, CFSB not preferred
             // (+CxREG: 10)
             if (printAllowed) {
-                uPortLog("%d: RegNC\n", rat);
+                LOG_INF("%d: RegNC", rat);
             }
             break;
         case U_CELL_NET_STATUS_TEMPORARY_NETWORK_BARRING:
             // Temporary barring
             if (printAllowed) {
-                uPortLog("%d: NRegB\n", rat);
+                LOG_INF("%d: NRegB", rat);
             }
             break;
         case U_CELL_NET_STATUS_UNKNOWN:
         default:
             // Unknown registration status
             if (printAllowed) {
-                uPortLog("%d: Unk %d\n", rat, status);
+                LOG_INF("%d: Unk %d", rat, status);
             }
             break;
     }
@@ -770,7 +773,7 @@ static int32_t prepareConnect(uCellPrivateInstance_t *pInstance)
     char imsi[U_CELL_INFO_IMSI_SIZE];
     size_t numRegTypes = sizeof(gRegTypes) / sizeof(gRegTypes[0]);
 
-    uPortLog("U_CELL_NET: preparing to register/connect...\n");
+    LOG_INF("U_CELL_NET: preparing to register/connect...");
 
     // Register the URC handlers
     uAtClientSetUrcHandler(atHandle, "+CREG:", CREG_urc, pInstance);
@@ -811,8 +814,8 @@ static int32_t setAutomaticMode(const uCellPrivateInstance_t *pInstance)
     int32_t errorCode;
     int32_t x;
 
-    uPortLog("U_CELL_NET: setting automatic network"
-             " selection mode...\n");
+    LOG_INF("U_CELL_NET: setting automatic network"
+             " selection mode...");
 
     deviceError.type = U_AT_CLIENT_DEVICE_ERROR_TYPE_NO_ERROR;
     // See if we are already in automatic mode
@@ -1051,7 +1054,7 @@ static int32_t registerNetwork(uCellPrivateInstance_t *pInstance,
         // registration has been done so set the
         // timeout to a second so that we can spin
         // around a loop
-        uPortLog("U_CELL_NET: registering on %s...\n", pMccMnc);
+        LOG_INF("U_CELL_NET: registering on %s...", pMccMnc);
         uAtClientLock(atHandle);
         uAtClientTimeoutSet(atHandle, 1000);
         uAtClientCommandStart(atHandle, "AT+COPS=");
@@ -1909,26 +1912,26 @@ static int32_t getDnsStr(const uCellPrivateInstance_t *pInstance,
         // Print what we got out for debug purposes
         if (errorCode == 0) {
             if (bytesRead1[0] > 0) {
-                uPortLog("U_CELL_NET: primary DNS address:   \"%.*s\".\n",
+                LOG_INF("U_CELL_NET: primary DNS address:   \"%.*s\".",
                          bytesRead1[0], pBuffer);
             }
             if (bytesRead1[1] > 0) {
-                uPortLog("U_CELL_NET:                        \"%.*s\".\n",
+                LOG_INF("U_CELL_NET:                        \"%.*s\".",
                          bytesRead1[1], pBuffer +
                          (U_CELL_NET_IP_ADDRESS_SIZE * 2));
             }
             if (bytesRead2[0] > 0) {
-                uPortLog("U_CELL_NET: secondary DNS address: \"%.*s\".\n",
+                LOG_INF("U_CELL_NET: secondary DNS address: \"%.*s\".",
                          bytesRead2[0], pBuffer +
                          (U_CELL_NET_IP_ADDRESS_SIZE * 1));
             }
             if (bytesRead2[1] > 0) {
-                uPortLog("U_CELL_NET:                        \"%.*s\".\n",
+                LOG_INF("U_CELL_NET:                        \"%.*s\".",
                          bytesRead2[1], pBuffer +
                          (U_CELL_NET_IP_ADDRESS_SIZE * 3));
             }
         } else {
-            uPortLog("U_CELL_NET: unable to read DNS addresses.\n");
+            LOG_INF("U_CELL_NET: unable to read DNS addresses.");
         }
 
         // Free memory
@@ -1997,15 +2000,15 @@ static int32_t getDnsStrUpsd(const uCellPrivateInstance_t *pInstance,
             }
             // Print what we got out for debug purposes
             if (bytesRead[0] > 0) {
-                uPortLog("U_CELL_NET: primary DNS address: \"%.*s\".\n",
+                LOG_INF("U_CELL_NET: primary DNS address: \"%.*s\".",
                          bytesRead[0], pBuffer);
             }
             if (bytesRead[1] > 0) {
-                uPortLog("U_CELL_NET: secondary DNS address: \"%.*s\".\n",
+                LOG_INF("U_CELL_NET: secondary DNS address: \"%.*s\".",
                          bytesRead[1], pBuffer + U_CELL_NET_IP_ADDRESS_SIZE);
             }
         } else {
-            uPortLog("U_CELL_NET: unable to read DNS addresses.\n");
+            LOG_INF("U_CELL_NET: unable to read DNS addresses.");
         }
 
         // Free memory
@@ -2067,15 +2070,15 @@ int32_t uCellNetConnect(uDeviceHandle_t cellHandle,
                             pApn = _APN_GET(pApnConfig);
                             pUsername = _APN_GET(pApnConfig);
                             pPassword = _APN_GET(pApnConfig);
-                            uPortLog("U_CELL_NET: APN from database is"
-                                     " \"%s\".\n", pApn);
+                            LOG_INF("U_CELL_NET: APN from database is"
+                                     " \"%s\".", pApn);
                         } else {
                             if (pApn != NULL) {
                                 if (uCellMnoDbProfileHas(pInstance,
                                                          U_CELL_MNO_DB_FEATURE_IGNORE_APN)) {
-                                    uPortLog("U_CELL_NET: ** WARNING ** user-specified APN"
+                                    LOG_INF("U_CELL_NET: ** WARNING ** user-specified APN"
                                              " \"%s\" will be IGNORED as the current MNO"
-                                             " profile (%d) does not permit user APNs.\n",
+                                             " profile (%d) does not permit user APNs.",
                                              pApn, pInstance->mnoProfile);
                                     pApn = NULL;
                                 } else if (uCellMnoDbProfileHas(pInstance,
@@ -2083,17 +2086,17 @@ int32_t uCellNetConnect(uDeviceHandle_t cellHandle,
                                     // An APN has been specified but the MNO profile doesn't
                                     // permit one to be set through AT+CGDCONT (or the AT+UPSD
                                     // equivalent) so flag an error
-                                    uPortLog("U_CELL_NET: APN \"%s\" was specified but the"
+                                    LOG_INF("U_CELL_NET: APN \"%s\" was specified but the"
                                              " current MNO profile (%d) does not permit an"
-                                             " APN to be set.\n", pInstance->mnoProfile, pApn);
+                                             " APN to be set.", pInstance->mnoProfile, pApn);
                                     errorCode = (int32_t) U_ERROR_COMMON_INVALID_PARAMETER;
                                 } else {
-                                    uPortLog("U_CELL_NET: user-specified APN is"
-                                             " \"%s\".\n", pApn);
+                                    LOG_INF("U_CELL_NET: user-specified APN is"
+                                             " \"%s\".", pApn);
                                 }
                             } else {
-                                uPortLog("U_CELL_NET: default APN will be"
-                                         " used by network.\n");
+                                LOG_INF("U_CELL_NET: default APN will be"
+                                         " used by network.");
                             }
                         }
                         if ((errorCode == 0) &&
@@ -2132,19 +2135,19 @@ int32_t uCellNetConnect(uDeviceHandle_t cellHandle,
                                 if (uCellPrivateGetOperatorStr(pInstance,
                                                                buffer,
                                                                sizeof(buffer)) == 0) {
-                                    uPortLog("U_CELL_NET: registered on %s.\n", buffer);
-                                    // This to prevent warnings if uPortLog is compiled-out
+                                    LOG_INF("U_CELL_NET: registered on %s.", buffer);
+                                    // This to prevent warnings if LOG_INF is compiled-out
                                     (void) buffer;
                                 }
                             } else {
-                                uPortLog("U_CELL_NET: unable to register with"
+                                LOG_INF("U_CELL_NET: unable to register with"
                                          " the network");
                                 if (pApn != NULL) {
-                                    uPortLog(", is APN \"%s\" correct and is an"
-                                             " antenna connected?\n", pApn);
+                                    LOG_INF(", is APN \"%s\" correct and is an"
+                                             " antenna connected?", pApn);
                                 } else {
-                                    uPortLog(", does an APN need to be specified"
-                                             " and is an antenna connected?\n");
+                                    LOG_INF(", does an APN need to be specified"
+                                             " and is an antenna connected?");
                                 }
                             }
                         }
@@ -2175,11 +2178,11 @@ int32_t uCellNetConnect(uDeviceHandle_t cellHandle,
                                                             U_CELL_NET_PROFILE_ID);
                             }
                             if (errorCode != 0) {
-                                uPortLog("U_CELL_NET: unable to activate a PDP context");
+                                LOG_INF("U_CELL_NET: unable to activate a PDP context");
                                 if (pApn != NULL) {
-                                    uPortLog(", is APN \"%s\" correct?\n", pApn);
+                                    LOG_INF(", is APN \"%s\" correct?", pApn);
                                 } else {
-                                    uPortLog(" (no APN specified/[or allowed]).\n");
+                                    LOG_INF(" (no APN specified/[or allowed]).");
                                 }
                             }
                         }
@@ -2200,14 +2203,14 @@ int32_t uCellNetConnect(uDeviceHandle_t cellHandle,
                         }
                         pInstance->profileState = U_CELL_PRIVATE_PROFILE_STATE_SHOULD_BE_UP;
                         pInstance->connectedAtMs = uPortGetTickTimeMs();
-                        uPortLog("U_CELL_NET: connected after %d second(s).\n",
+                        LOG_INF("U_CELL_NET: connected after %d second(s).",
                                  (int32_t) ((uPortGetTickTimeMs() -
                                              pInstance->startTimeMs) / 1000));
                     } else {
                         // Switch radio off after failure
                         radioOff(pInstance);
-                        uPortLog("U_CELL_NET: connection attempt stopped after"
-                                 " %d second(s).\n",
+                        LOG_WRN("U_CELL_NET: connection attempt stopped after"
+                                 " %d second(s).",
                                  (int32_t) ((uPortGetTickTimeMs() -
                                              pInstance->startTimeMs) / 1000));
                     }
@@ -2218,7 +2221,7 @@ int32_t uCellNetConnect(uDeviceHandle_t cellHandle,
 
                 }
             } else {
-                uPortLog("U_CELL_NET: already connected.\n");
+                LOG_INF("U_CELL_NET: already connected.");
             }
         }
 
@@ -2263,10 +2266,10 @@ int32_t uCellNetRegister(uDeviceHandle_t cellHandle,
                     if (uCellPrivateGetOperatorStr(pInstance,
                                                    buffer,
                                                    sizeof(buffer)) == 0) {
-                        uPortLog("U_CELL_NET: registered on %s.\n", buffer);
+                        LOG_INF("U_CELL_NET: registered on %s.", buffer);
                     }
                 } else {
-                    uPortLog("U_CELL_NET: unable to register with the network.\n");
+                    LOG_INF("U_CELL_NET: unable to register with the network.");
                 }
                 if (errorCode == 0) {
                     // This step _shouldn't_ be necessary.  However,
@@ -2283,14 +2286,14 @@ int32_t uCellNetRegister(uDeviceHandle_t cellHandle,
                     if (pMccMnc != NULL) {
                         memcpy(pInstance->mccMnc, pMccMnc, sizeof(pInstance->mccMnc));
                     }
-                    uPortLog("U_CELL_NET: registered after %d second(s).\n",
+                    LOG_INF("U_CELL_NET: registered after %d second(s).",
                              (int32_t) ((uPortGetTickTimeMs() -
                                          pInstance->startTimeMs) / 1000));
                 } else {
                     // Switch radio off after failure
                     radioOff(pInstance);
-                    uPortLog("U_CELL_NET: registration attempt stopped after"
-                             " %d second(s).\n",
+                    LOG_INF("U_CELL_NET: registration attempt stopped after"
+                             " %d second(s).",
                              (int32_t) ((uPortGetTickTimeMs() -
                                          pInstance->startTimeMs) / 1000));
                 }
@@ -2350,15 +2353,15 @@ int32_t uCellNetActivate(uDeviceHandle_t cellHandle,
                             pApn = _APN_GET(pApnConfig);
                             pUsername = _APN_GET(pApnConfig);
                             pPassword = _APN_GET(pApnConfig);
-                            uPortLog("U_CELL_NET: APN from database is \"%s\".\n",
+                            LOG_INF("U_CELL_NET: APN from database is \"%s\".",
                                      pApn);
                         } else {
                             if (pApn != NULL) {
-                                uPortLog("U_CELL_NET: user-specified APN is"
-                                         " \"%s\".\n", pApn);
+                                LOG_INF("U_CELL_NET: user-specified APN is"
+                                         " \"%s\".", pApn);
                             } else {
-                                uPortLog("U_CELL_NET: default APN will be used"
-                                         " by network.\n");
+                                LOG_INF("U_CELL_NET: default APN will be used"
+                                         " by network.");
                             }
                         }
                         if (U_CELL_PRIVATE_HAS(pInstance->pModule,
@@ -2422,16 +2425,16 @@ int32_t uCellNetActivate(uDeviceHandle_t cellHandle,
                     pInstance->profileState = U_CELL_PRIVATE_PROFILE_STATE_SHOULD_BE_UP;
                     pInstance->connectedAtMs = uPortGetTickTimeMs();
                     if (pApn != NULL) {
-                        uPortLog("U_CELL_NET: activated on APN \"%s\".\n", pApn);
+                        LOG_INF("U_CELL_NET: activated on APN \"%s\".", pApn);
                     } else {
-                        uPortLog("U_CELL_NET: activated.\n");
+                        LOG_INF("U_CELL_NET: activated.");
                     }
                 } else {
-                    uPortLog("U_CELL_NET: unable to activate a PDP context");
+                    LOG_INF("U_CELL_NET: unable to activate a PDP context");
                     if (pApn != NULL) {
-                        uPortLog(", is APN \"%s\" correct?\n", pApn);
+                        LOG_INF(", is APN \"%s\" correct?", pApn);
                     } else {
-                        uPortLog(" (no APN specified).\n");
+                        LOG_INF(" (no APN specified).");
                     }
                 }
             }
@@ -2476,7 +2479,7 @@ int32_t uCellNetDeactivate(uDeviceHandle_t cellHandle,
                     }
                 }
                 if (errorCode != 0) {
-                    uPortLog("U_CELL_NET: unable to deactivate context.\n");
+                    LOG_INF("U_CELL_NET: unable to deactivate context.");
                 }
             }
         }
@@ -2522,9 +2525,9 @@ int32_t uCellNetDisconnect(uDeviceHandle_t cellHandle,
                 uAtClientRemoveUrcHandler(atHandle, "+CGREG:");
                 uAtClientRemoveUrcHandler(atHandle, "+CEREG:");
                 uAtClientRemoveUrcHandler(atHandle, "+UUPSDD:");
-                uPortLog("U_CELL_NET: disconnected.\n");
+                LOG_INF("U_CELL_NET: disconnected.");
             } else {
-                uPortLog("U_CELL_NET: unable to disconnect.\n");
+                LOG_INF("U_CELL_NET: unable to disconnect.");
             }
         }
 
@@ -2886,13 +2889,13 @@ int32_t uCellNetGetOperatorStr(uDeviceHandle_t cellHandle,
                 errorCodeOrSize = uCellPrivateGetOperatorStr(pInstance,
                                                              pStr, size);
                 if (errorCodeOrSize >= 0) {
-                    uPortLog("U_CELL_NET: operator is \"%s\".\n", pStr);
+                    LOG_INF("U_CELL_NET: operator is \"%s\".", pStr);
                 } else {
-                    uPortLog("U_CELL_NET: unable to read operator name.\n");
+                    LOG_INF("U_CELL_NET: unable to read operator name.");
                 }
             } else {
-                uPortLog("U_CELL_NET: unable to read operator name, not"
-                         " registered with a network.\n");
+                LOG_INF("U_CELL_NET: unable to read operator name, not"
+                         " registered with a network.");
             }
         }
 
@@ -2945,15 +2948,15 @@ int32_t uCellNetGetMccMnc(uDeviceHandle_t cellHandle,
                     *pMnc = atoi(&(buffer[3]));
                     buffer[3] = 0;
                     *pMcc = atoi(buffer);
-                    uPortLog("U_CELL_NET: MCC/MNC is %u/%u.\n",
+                    LOG_INF("U_CELL_NET: MCC/MNC is %u/%u.",
                              (uint32_t) *pMcc, (uint32_t) *pMnc);
                 } else {
                     errorCode = (int32_t) U_CELL_ERROR_AT;
-                    uPortLog("U_CELL_NET: unable to read MCC/MNC.\n");
+                    LOG_INF("U_CELL_NET: unable to read MCC/MNC.");
                 }
             } else {
-                uPortLog("U_CELL_NET: unable to read MCC/MNC, not"
-                         " registered with a network.\n");
+                LOG_INF("U_CELL_NET: unable to read MCC/MNC, not"
+                         " registered with a network.");
             }
         }
 
@@ -3033,11 +3036,11 @@ int32_t uCellNetGetIpAddressStr(uDeviceHandle_t cellHandle,
                             if (pStr != NULL) {
                                 strncpy(pStr, pBuffer, U_CELL_NET_IP_ADDRESS_SIZE);
                             }
-                            uPortLog("U_CELL_NET: IP address \"%.*s\".\n",
+                            LOG_INF("U_CELL_NET: IP address \"%.*s\".",
                                      bytesRead, pBuffer);
                         } else {
                             errorCodeOrSize = (int32_t) U_CELL_ERROR_AT;
-                            uPortLog("U_CELL_NET: unable to read IP address.\n");
+                            LOG_INF("U_CELL_NET: unable to read IP address.");
                             uPortTaskBlock(1000);
                         }
                     }
@@ -3046,7 +3049,7 @@ int32_t uCellNetGetIpAddressStr(uDeviceHandle_t cellHandle,
                     uPortFree(pBuffer);
                 }
             } else {
-                uPortLog("U_CELL_NET: not connected, unable to read IP address.\n");
+                LOG_INF("U_CELL_NET: not connected, unable to read IP address.");
             }
         }
 
@@ -3109,10 +3112,10 @@ int32_t uCellNetGetApnStr(uDeviceHandle_t cellHandle,
                 errorCodeOrSize = getApnStr(pInstance, pStr, size);
             }
             if (errorCodeOrSize >= 0) {
-                uPortLog("U_CELL_NET: APN is \"%.*s\".\n",
+                LOG_INF("U_CELL_NET: APN is \"%.*s\".",
                          errorCodeOrSize, pStr);
             } else {
-                uPortLog("U_CELL_NET: unable to read APN.\n");
+                LOG_INF("U_CELL_NET: unable to read APN.");
             }
         }
 
