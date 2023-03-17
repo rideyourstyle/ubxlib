@@ -590,12 +590,6 @@ static size_t numContainersInUse() {
     pContainer = pContainer->pNext;
   }
   LOG_INF("Number of used Sockets: %d", numInUse);
-  if(numInUse != 0)
-  {
-      static uint32_t test = 0;
-      test++;
-      LOG_ERR("STOP (%d)", test);
-  }
 
   return numInUse;
 }
