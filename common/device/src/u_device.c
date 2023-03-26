@@ -258,10 +258,10 @@ int32_t uDeviceOpen(const uDeviceCfg_t *pDeviceCfg, uDeviceHandle_t *pDeviceHand
                     }
                     break;
                 case U_DEVICE_TYPE_GNSS:
-                    errorCode = uDevicePrivateGnssAdd(pDeviceCfg, pDeviceHandle);
-                    if (errorCode == 0) {
-                        U_DEVICE_INSTANCE(*pDeviceHandle)->moduleType = pDeviceCfg->deviceCfg.cfgGnss.moduleType;
-                    }
+//                    errorCode = uDevicePrivateGnssAdd(pDeviceCfg, pDeviceHandle);
+//                    if (errorCode == 0) {
+//                        U_DEVICE_INSTANCE(*pDeviceHandle)->moduleType = pDeviceCfg->deviceCfg.cfgGnss.moduleType;
+//                    }
                     break;
                 case U_DEVICE_TYPE_SHORT_RANGE:
                     errorCode = uDevicePrivateShortRangeAdd(pDeviceCfg, pDeviceHandle);

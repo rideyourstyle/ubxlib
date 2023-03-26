@@ -28,6 +28,9 @@
 # include "u_cfg_override.h" // For a customer's configuration override
 #endif
 
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(ubx_cell_info);
+
 #include "errno.h"
 #include "limits.h"    // INT_MAX
 #include "stdlib.h"    // strol(), atoi(), strol()
@@ -513,15 +516,15 @@ int32_t uCellInfoRefreshRadioParameters(uDeviceHandle_t cellHandle)
             }
 
             if (errorCode == 0) {
-                uPortLog("U_CELL_INFO: radio parameters refreshed:\n");
-                uPortLog("             RSSI:    %d dBm\n", pRadioParameters->rssiDbm);
-                uPortLog("             RSRP:    %d dBm\n", pRadioParameters->rsrpDbm);
-                uPortLog("             RSRQ:    %d dB\n", pRadioParameters->rsrqDb);
-                uPortLog("             RxQual:  %d\n", pRadioParameters->rxQual);
-                uPortLog("             cell ID: %d\n", pRadioParameters->cellId);
-                uPortLog("             EARFCN:  %d\n", pRadioParameters->earfcn);
+                LOG_INF("U_CELL_INFO: radio parameters refreshed:\n");
+                LOG_INF("             RSSI:    %d dBm", pRadioParameters->rssiDbm);
+                LOG_INF("             RSRP:    %d dBm", pRadioParameters->rsrpDbm);
+                LOG_INF("             RSRQ:    %d dB", pRadioParameters->rsrqDb);
+                LOG_INF("             RxQual:  %d", pRadioParameters->rxQual);
+                LOG_INF("             cell ID: %d", pRadioParameters->cellId);
+                LOG_INF("             EARFCN:  %d", pRadioParameters->earfcn);
             } else {
-                uPortLog("U_CELL_INFO: unable to refresh radio parameters.\n");
+                LOG_ERR("U_CELL_INFO: unable to refresh radio parameters.\n");
             }
         }
 

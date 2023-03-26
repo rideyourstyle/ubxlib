@@ -584,6 +584,7 @@ static size_t numContainersInUse() {
   size_t numInUse = 0;
 
   while (pContainer != NULL) {
+    LOG_INF("Socket state: %d", pContainer->socket.state);
     if (pContainer->socket.state != U_SOCK_STATE_CLOSED) {
       numInUse++;
     }
