@@ -359,7 +359,7 @@ extern "C" {
 #ifndef U_AT_CLIENT_URC_TASK_PRIORITY
 /** The priority of the URC task.
  */
-# define U_AT_CLIENT_URC_TASK_PRIORITY (U_CFG_OS_PRIORITY_MAX - 5)
+# define U_AT_CLIENT_URC_TASK_PRIORITY 2
 #endif
 
 #ifndef U_AT_CLIENT_CALLBACK_TASK_STACK_SIZE_BYTES
@@ -373,15 +373,15 @@ extern "C" {
 # define U_AT_CLIENT_CALLBACK_TASK_STACK_SIZE_BYTES 2048
 #endif
 
-#ifndef U_AT_CLIENT_CALLBACK_TASK_PRIORITY
-/** The priority of the task in which any callbacks triggered via
- * uAtClientCallback() will run.  This is set to
- * U_CFG_OS_APP_TASK_PRIORITY because the callback task is often in
- * a chain of event tasks which should be set to the same
- * priority or there will be a "kink" in the chain.
- */
-# define U_AT_CLIENT_CALLBACK_TASK_PRIORITY U_CFG_OS_APP_TASK_PRIORITY
-#endif
+//#ifndef U_AT_CLIENT_CALLBACK_TASK_PRIORITY
+///** The priority of the task in which any callbacks triggered via
+// * uAtClientCallback() will run.  This is set to
+// * U_CFG_OS_APP_TASK_PRIORITY because the callback task is often in
+// * a chain of event tasks which should be set to the same
+// * priority or there will be a "kink" in the chain.
+// */
+//# define U_AT_CLIENT_CALLBACK_TASK_PRIORITY U_CFG_OS_APP_TASK_PRIORITY
+//#endif
 
 #ifndef U_AT_CLIENT_MAX_NUM
 /** The maximum number of AT handlers that can be active at any

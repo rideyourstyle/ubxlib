@@ -516,7 +516,7 @@ int32_t uCellInfoRefreshRadioParameters(uDeviceHandle_t cellHandle)
             }
 
             if (errorCode == 0) {
-                LOG_INF("U_CELL_INFO: radio parameters refreshed:\n");
+                LOG_INF("U_CELL_INFO: radio parameters refreshed:");
                 LOG_INF("             RSSI:    %d dBm", pRadioParameters->rssiDbm);
                 LOG_INF("             RSRP:    %d dBm", pRadioParameters->rsrpDbm);
                 LOG_INF("             RSRQ:    %d dB", pRadioParameters->rsrqDb);
@@ -524,7 +524,7 @@ int32_t uCellInfoRefreshRadioParameters(uDeviceHandle_t cellHandle)
                 LOG_INF("             cell ID: %d", pRadioParameters->cellId);
                 LOG_INF("             EARFCN:  %d", pRadioParameters->earfcn);
             } else {
-                LOG_ERR("U_CELL_INFO: unable to refresh radio parameters.\n");
+                LOG_ERR("U_CELL_INFO: unable to refresh radio parameters");
             }
         }
 

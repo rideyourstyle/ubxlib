@@ -151,7 +151,7 @@ static int32_t addDevice(const uDeviceCfgUart_t *pCfgUart,
             if (pContext->at != NULL) {
                 // Set printing of AT commands by the cellular driver,
                 // which can be useful while debugging.
-                uAtClientPrintAtSet(pContext->at, true);
+                uAtClientPrintAtSet(pContext->at, false);
 
                 // Add a cellular instance, which actually
                 // creates the device instance for us in pDeviceHandle

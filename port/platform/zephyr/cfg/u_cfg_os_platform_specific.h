@@ -70,12 +70,12 @@
 # define U_CFG_OS_YIELD_MS 2
 #endif
 
-#ifndef U_CFG_OS_APP_TASK_PRIORITY
+//#ifndef U_CFG_OS_APP_TASK_PRIORITY
 /** The priority of the task running the examples and tests: should
  * be low but must be higher than the minimum.
  */
-# define U_CFG_OS_APP_TASK_PRIORITY (U_CFG_OS_PRIORITY_MIN + 1)
-#endif
+//# define U_CFG_OS_APP_TASK_PRIORITY (U_CFG_OS_PRIORITY_MIN + 1)
+//#endif
 
 #ifndef U_CFG_OS_MAX_THREADS
 /**  Max number of threads to be used by ubxlib.
@@ -105,7 +105,7 @@
 /** The priority assigned to the timer event task: should be as high
  * as possible.
  */
-# define U_CFG_OS_TIMER_EVENT_TASK_PRIORITY U_CFG_OS_PRIORITY_MAX
+# define U_CFG_OS_TIMER_EVENT_TASK_PRIORITY 0
 #endif
 
 #ifndef U_CFG_OS_TIMER_EVENT_QUEUE_SIZE

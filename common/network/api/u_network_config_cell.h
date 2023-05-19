@@ -46,6 +46,8 @@
  * irrespective of whether cellular is used there.
  */
 
+#include "u_network.h"
+
 /** The network configuration for cellular.
  */
 typedef struct {
