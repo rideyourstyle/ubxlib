@@ -101,16 +101,16 @@
 # define U_CFG_OS_TIMER_EVENT_TASK_STACK_SIZE_BYTES (1024 * 2)
 #endif
 
-#ifndef U_CFG_OS_TIMER_EVENT_TASK_PRIORITY
-/** The priority assigned to the timer event task: should be as high
- * as possible.
- */
-# define U_CFG_OS_TIMER_EVENT_TASK_PRIORITY 0
-#endif
+//#ifndef U_CFG_OS_TIMER_EVENT_TASK_PRIORITY
+///** The priority assigned to the timer event task: should be as high
+// * as possible.
+// */
+//# define U_CFG_OS_TIMER_EVENT_TASK_PRIORITY 0
+//#endif
 
 #ifndef U_CFG_OS_TIMER_EVENT_QUEUE_SIZE
 /** The number of things that can be in the timer event queue
- * at any one time.  If this is not big enough then timer expiries
+ * at any one time. If this is not big enough then timer expires
  * may be lost.
  */
 # define U_CFG_OS_TIMER_EVENT_QUEUE_SIZE (U_CFG_OS_TIMER_MAX_NUM * 2)
