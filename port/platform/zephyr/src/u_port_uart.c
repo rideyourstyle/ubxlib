@@ -83,6 +83,8 @@
  * COMPILE-TIME MACROS
  * -------------------------------------------------------------- */
 
+#define U_PORT_UART_MAX_NUM 1
+
 #ifndef U_ZEPHYR_PORT_UART_INTERRUPT_DRIVEN_NUM_NOPS
 /** The number of NOPS to execute at the start of uartCb(),
  * see explanation at the top of that function.
