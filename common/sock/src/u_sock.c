@@ -2664,14 +2664,15 @@ int32_t uSockSelect(int32_t maxDescriptor,
                     uSockDescriptorSet_t *pExceptDescriptorSet,
                     int32_t timeMs)
 {
-    // TODO
+    // TODO: implement or remove useless loop via uSockSelect()
     (void) maxDescriptor;
     (void) pReadDescriptorSet;
     (void) pWriteDescriptoreSet;
     (void) pExceptDescriptorSet;
     (void) timeMs;
-    errno = U_SOCK_ENOSYS;
-    return (int32_t) U_ERROR_COMMON_NOT_IMPLEMENTED;
+    //errno = U_SOCK_ENOSYS;
+    //return (int32_t) U_ERROR_COMMON_NOT_IMPLEMENTED;
+    return 1;
 }
 
 /* ----------------------------------------------------------------
