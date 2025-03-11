@@ -71,7 +71,7 @@
  * There are up to 4 UART HW blocks available, how many are
  * connected depends on the chip revision.
  */
-#define U_PORT_UART_MAX_NUM 4
+#define U_PORT_UART_MAX_NUM 1
 #endif
 
 /* ----------------------------------------------------------------

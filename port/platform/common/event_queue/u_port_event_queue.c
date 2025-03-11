@@ -312,8 +312,8 @@ int32_t uPortEventQueueOpen(void (*pFunction) (void *, size_t),
         if ((pFunction != NULL) &&
             (paramMaxLengthBytes <= U_PORT_EVENT_QUEUE_MAX_PARAM_LENGTH_BYTES) &&
             (stackSizeBytes >= U_PORT_EVENT_QUEUE_MIN_TASK_STACK_SIZE_BYTES) &&
-            (priority >= U_CFG_OS_PRIORITY_MIN) &&
-            (priority <= U_CFG_OS_PRIORITY_MAX) &&
+            (priority < U_CFG_OS_PRIORITY_MIN) &&
+            (priority >= U_CFG_OS_PRIORITY_MAX) &&
             (queueLength > 0)) {
 
             U_PORT_MUTEX_LOCK(gMutex);

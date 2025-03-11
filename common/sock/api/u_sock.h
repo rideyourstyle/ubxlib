@@ -285,10 +285,9 @@ extern "C" {
 
 /** Determine if the bit corresponding to a given file descriptor is set.
  */
-#define U_SOCK_FD_ISSET(d, pSet) if (((d) >= 0) &&                           \
-                                     ((d) < U_SOCK_DESCRIPTOR_SET_SIZE)) {   \
-                                     (*(pSet))[(d) / 8] & (1 << ((d) & 7));  \
-                                 }
+#define U_SOCK_FD_ISSET(d, pSet)  (((d) >= 0) &&                         \
+                                  ((d) < U_SOCK_DESCRIPTOR_SET_SIZE)) && \
+                                  (*(pSet))[(d) / 8] & (1 << ((d) & 7))  \
 
 /* ----------------------------------------------------------------
  * TYPES

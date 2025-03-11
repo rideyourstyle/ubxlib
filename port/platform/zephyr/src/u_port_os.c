@@ -254,8 +254,8 @@ int32_t uPortTaskCreate(void (*pFunction)(void *),
     uPortOsThreadInstance_t *newThread =  NULL;
 
     if ((pFunction != NULL) && (pTaskHandle != NULL) &&
-        (priority >= U_CFG_OS_PRIORITY_MIN) &&
-        (priority <= U_CFG_OS_PRIORITY_MAX)) {
+        (priority < U_CFG_OS_PRIORITY_MIN) &&
+        (priority >= U_CFG_OS_PRIORITY_MAX)) {
 
         newThread =  getNewThreadInstance(stackSizeBytes);
         errorCode = U_ERROR_COMMON_NO_MEMORY;
