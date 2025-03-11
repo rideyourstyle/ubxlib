@@ -74,14 +74,14 @@
  * In Zephyr, as used on this platform, low numbers indicate
  * lower priority.
  */
-# define U_CFG_OS_PRIORITY_MIN  0
+# define U_CFG_OS_PRIORITY_MIN  7
 #endif
 
 #ifndef U_CFG_OS_PRIORITY_MAX
 /** The maximum task priority, default is set to 30 (31-1).
  * Idletask is 0.
  */
-# define U_CFG_OS_PRIORITY_MAX  30
+# define U_CFG_OS_PRIORITY_MAX  1
 #endif
 
 #ifndef U_CFG_OS_YIELD_MS
@@ -94,7 +94,7 @@
 /** The priority of the task running the examples and tests: should
  * be low but must be higher than the minimum.
  */
-# define U_CFG_OS_APP_TASK_PRIORITY (U_CFG_OS_PRIORITY_MIN + 1)
+# define U_CFG_OS_APP_TASK_PRIORITY (U_CFG_OS_PRIORITY_MIN - 1)
 #endif
 
 #ifndef U_CFG_OS_MAX_THREADS
