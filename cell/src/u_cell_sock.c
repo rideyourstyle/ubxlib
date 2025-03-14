@@ -902,7 +902,7 @@ int32_t uCellSockClose(uDeviceHandle_t cellHandle,
             if (pSocket != NULL) {
                 errnoLocal = U_SOCK_EIO;
                 // Close the socket through the cellular module
-                // If have seen modules return ERROR to this
+                // It has seen modules return ERROR to this
                 // immediately so try a few times
                 deviceError.type = U_AT_CLIENT_DEVICE_ERROR_TYPE_ERROR;
                 for (size_t x = 3; (x > 0) &&
