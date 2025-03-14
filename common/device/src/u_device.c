@@ -54,6 +54,10 @@
 #include "u_gnss_module_type.h"
 #include "u_gnss_type.h"
 
+
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER( ubx );
+
 /* ----------------------------------------------------------------
  * COMPILE-TIME MACROS
  * -------------------------------------------------------------- */
