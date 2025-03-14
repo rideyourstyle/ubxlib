@@ -305,18 +305,18 @@
  */
 
 #ifdef U_CFG_OVERRIDE
-# include "u_cfg_override.h" // For a customer's configuration override
+#include "u_cfg_override.h" // For a customer's configuration override
 #endif
 
-#include "limits.h"        // For UCHAR_MAX, USHRT_MAX, INT_MAX
+#include "limits.h" // For UCHAR_MAX, USHRT_MAX, INT_MAX
 #include "errno.h"
-#include "stdlib.h"        // strtol()
-#include "stddef.h"        // NULL, size_t etc.
-#include "stdint.h"        // int32_t etc.
+#include "stdlib.h" // strtol()
+#include "stddef.h" // NULL, size_t etc.
+#include "stdint.h" // int32_t etc.
 #include "stdbool.h"
-#include "string.h"        // strlen(), strchr(), strtol()
-#include "stdio.h"         // snprintf()
-#include "sys/time.h"      // mktime() and struct timeval in most cases
+#include "string.h"   // strlen(), strchr(), strtol()
+#include "stdio.h"    // snprintf()
+#include "sys/time.h" // mktime() and struct timeval in most cases
 
 #include "u_cfg_sw.h"
 
@@ -341,6 +341,9 @@
 #include "u_cell_sock.h"
 #include "u_wifi_sock.h"
 
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(ubx_sock);
+
 /* ----------------------------------------------------------------
  * COMPILE-TIME MACROS
  * -------------------------------------------------------------- */
@@ -353,15 +356,16 @@
  * to release the memory occupied by closed allocated
  * sockets when done.
  */
-# define U_SOCK_NUM_STATIC_SOCKETS     7
+#define U_SOCK_NUM_STATIC_SOCKETS 7
 #endif
 
 /** Increment a socket descriptor.
  */
-#define U_SOCK_INC_DESCRIPTOR(d)  (d)++;         \
-                                  if ((d) < 0) { \
-                                      d = 0;     \
-                                  }
+#define U_SOCK_INC_DESCRIPTOR(d)                                                                   \
+    (d)++;                                                                                         \
+    if ((d) < 0) {                                                                                 \
+        d = 0;                                                                                     \
+    }
 
 /* ----------------------------------------------------------------
  * TYPES
@@ -370,17 +374,17 @@
 /** Socket state.
  */
 typedef enum {
-    U_SOCK_STATE_CREATED,   /**< Freshly created, unsullied. */
-    U_SOCK_STATE_CONNECTED, /**< TCP connected or UDP has an address. */
-    U_SOCK_STATE_SHUTDOWN_FOR_READ,  /**< Block all reads. */
-    U_SOCK_STATE_SHUTDOWN_FOR_WRITE, /**< Block all writes. */
+    U_SOCK_STATE_CREATED,                 /**< Freshly created, unsullied. */
+    U_SOCK_STATE_CONNECTED,               /**< TCP connected or UDP has an address. */
+    U_SOCK_STATE_SHUTDOWN_FOR_READ,       /**< Block all reads. */
+    U_SOCK_STATE_SHUTDOWN_FOR_WRITE,      /**< Block all writes. */
     U_SOCK_STATE_SHUTDOWN_FOR_READ_WRITE, /**< Block all reads and
                                                writes. */
-    U_SOCK_STATE_CLOSING, /**< Block all reads and writes, waiting
-                               for far end to complete closure, can be
-                               tidied up. */
-    U_SOCK_STATE_CLOSED   /**< Actually closed, cannot be found,
-                               container may be re-used. */
+    U_SOCK_STATE_CLOSING,                 /**< Block all reads and writes, waiting
+                                               for far end to complete closure, can be
+                                               tidied up. */
+    U_SOCK_STATE_CLOSED                   /**< Actually closed, cannot be found,
+                                               container may be re-used. */
 } uSockState_t;
 
 /** A socket.
@@ -399,9 +403,9 @@ typedef struct {
     int64_t receiveTimeoutMs;
     int32_t bytesSent;
     uSecurityTlsContext_t *pSecurityContext;
-    void (*pDataCallback) (void *);
+    void (*pDataCallback)(void *);
     void *pDataCallbackParameter;
-    void (*pClosedCallback) (void *);
+    void (*pClosedCallback)(void *);
     void *pClosedCallbackParameter;
     bool blocking; // At end to optimise structure packing
 } uSockSocket_t;
@@ -451,7 +455,7 @@ static uSockContainer_t gStaticContainers[U_SOCK_NUM_STATIC_SOCKETS];
 // Initialise.
 static int32_t init()
 {
-    int32_t errorCode = (int32_t) U_ERROR_COMMON_SUCCESS;
+    int32_t errorCode = (int32_t)U_ERROR_COMMON_SUCCESS;
     int32_t errnoLocal = U_SOCK_ENOMEM;
     int32_t errnoLocalCell;
     uSockContainer_t **ppContainer = &gpContainerListHead;
@@ -493,8 +497,8 @@ static int32_t init()
 
             if (errnoLocal == U_SOCK_ENONE) {
                 //  Link the static containers into the start of the container list
-                for (size_t x = 0; x < sizeof(gStaticContainers) /
-                     sizeof(gStaticContainers[0]); x++) {
+                for (size_t x = 0; x < sizeof(gStaticContainers) / sizeof(gStaticContainers[0]);
+                     x++) {
                     *ppContainer = &gStaticContainers[x];
                     (*ppContainer)->isStatic = true;
                     (*ppContainer)->socket.state = U_SOCK_STATE_CLOSED;
@@ -547,8 +551,7 @@ static uSockContainer_t *pContainerFindByDescriptor(uSockDescriptor_t descriptor
     uSockContainer_t *pContainer = NULL;
     uSockContainer_t *pContainerThis = gpContainerListHead;
 
-    while ((pContainerThis != NULL) &&
-           (pContainer == NULL)) {
+    while ((pContainerThis != NULL) && (pContainer == NULL)) {
         if ((pContainerThis->descriptor == descriptor) &&
             (pContainerThis->socket.state != U_SOCK_STATE_CLOSED)) {
             pContainer = pContainerThis;
@@ -564,14 +567,12 @@ static uSockContainer_t *pContainerFindByDescriptor(uSockDescriptor_t descriptor
 // returns the first entry for the given devHandle.
 // Will not find sockets in state CLOSED.
 // This does NOT lock the mutex, you need to do that.
-static uSockContainer_t *pContainerFindByDeviceHandle(uDeviceHandle_t devHandle,
-                                                      int32_t sockHandle)
+static uSockContainer_t *pContainerFindByDeviceHandle(uDeviceHandle_t devHandle, int32_t sockHandle)
 {
     uSockContainer_t *pContainer = NULL;
     uSockContainer_t *pContainerThis = gpContainerListHead;
 
-    while ((pContainerThis != NULL) &&
-           (pContainer == NULL)) {
+    while ((pContainerThis != NULL) && (pContainer == NULL)) {
         if ((pContainerThis->socket.devHandle == devHandle) &&
             ((pContainerThis->socket.sockHandle == sockHandle) ||
              (pContainerThis->socket.sockHandle < 0)) &&
@@ -603,8 +604,7 @@ static size_t numContainersInUse()
 
 // Create a socket in a container with the given descriptor.
 // This does NOT lock the mutex, you need to do that.
-static uSockContainer_t *pSockContainerCreate(uSockDescriptor_t descriptor,
-                                              uSockType_t type,
+static uSockContainer_t *pSockContainerCreate(uSockDescriptor_t descriptor, uSockType_t type,
                                               uSockProtocol_t protocol)
 {
     uSockContainer_t *pContainer = NULL;
@@ -625,7 +625,7 @@ static uSockContainer_t *pSockContainerCreate(uSockDescriptor_t descriptor,
         // Reached the end of the list and found no re-usable
         // containers, so allocate memory for the new container
         // and add it to the list
-        pContainer = (uSockContainer_t *) pUPortMalloc(sizeof (*pContainer));
+        pContainer = (uSockContainer_t *)pUPortMalloc(sizeof(*pContainer));
         if (pContainer != NULL) {
             pContainer->isStatic = false;
             pContainer->pPrevious = pContainerPrevious;
@@ -664,8 +664,7 @@ static bool containerFree(uSockDescriptor_t descriptor)
     uSockContainer_t **ppContainerThis = &gpContainerListHead;
     bool success = false;
 
-    while ((*ppContainerThis != NULL) &&
-           (ppContainer == NULL)) {
+    while ((*ppContainerThis != NULL) && (ppContainer == NULL)) {
         if ((*ppContainerThis)->descriptor == descriptor) {
             ppContainer = ppContainerThis;
         } else {
@@ -705,16 +704,14 @@ static bool containerFree(uSockDescriptor_t descriptor)
 // Callback for when local socket closures at the underlying
 // cell/wifi socket layer happen asynchronously, either
 // due to local closure or by the remote host
-static void closedCallback(uDeviceHandle_t devHandle,
-                           int32_t sockHandle)
+static void closedCallback(uDeviceHandle_t devHandle, int32_t sockHandle)
 {
     uSockContainer_t *pContainer;
 
     // Don't lock the container mutex here as this
     // needs to be callable while a send or receive is
     // in progress and that already has the mutex
-    pContainer = pContainerFindByDeviceHandle(devHandle,
-                                              sockHandle);
+    pContainer = pContainerFindByDeviceHandle(devHandle, sockHandle);
     if (pContainer != NULL) {
         // Mark the container as closed
         pContainer->socket.state = U_SOCK_STATE_CLOSED;
@@ -733,16 +730,14 @@ static void closedCallback(uDeviceHandle_t devHandle,
 
 // Callback for when data has been received at the
 // underlying cell/wifi socket layer.
-static void dataCallback(uDeviceHandle_t devHandle,
-                         int32_t sockHandle)
+static void dataCallback(uDeviceHandle_t devHandle, int32_t sockHandle)
 {
     uSockContainer_t *pContainer;
 
     // Don't lock the container mutex here as this
     // needs to be callable while a send or receive is
     // in progress and that already has the mutex
-    pContainer = pContainerFindByDeviceHandle(devHandle,
-                                              sockHandle);
+    pContainer = pContainerFindByDeviceHandle(devHandle, sockHandle);
     if (pContainer != NULL) {
         U_PORT_MUTEX_LOCK(gMutexCallbacks);
         if (pContainer->socket.pDataCallback != NULL) {
@@ -760,7 +755,7 @@ static void dataCallback(uDeviceHandle_t devHandle,
 // domain name, return a pointer to the separator
 // character for the port number part of it,
 // or NULL if there is no port number
-//lint -e{818} Suppress could be declared as pointing
+// lint -e{818} Suppress could be declared as pointing
 // to const 'cos when called from pUSockDomainRemovePort()
 // it can't.
 static char *pAddressPortSeparator(char *pAddress)
@@ -801,8 +796,7 @@ static bool addressStringIsIpv4(const char *pAddressString)
 
 // Convert an IPV4 address string "xxx.yyy.www.zzz:65535" into
 // a struct.
-static bool ipv4StringToAddress(const char *pAddressString,
-                                uSockAddress_t *pAddress)
+static bool ipv4StringToAddress(const char *pAddressString, uSockAddress_t *pAddress)
 {
     bool success = true;
     uint8_t digits[4];
@@ -817,15 +811,11 @@ static bool ipv4StringToAddress(const char *pAddressString,
 
     // Get the numbers from the IP address part,
     // moving pAddressString along as we go
-    for (size_t x = 0; (x < sizeof(digits) /
-                        sizeof(digits[0])) &&
-         success; x++) {
+    for (size_t x = 0; (x < sizeof(digits) / sizeof(digits[0])) && success; x++) {
         y = strtol(pAddressString, &pTmp, 10);
-        digits[x] = (uint8_t) y;
-        success = (pTmp > pAddressString) &&
-                  (y >= 0) && (y <= UCHAR_MAX) &&
-                  ((*pTmp == '.') || (*pTmp == 0) ||
-                   (*pTmp == ':'));
+        digits[x] = (uint8_t)y;
+        success = (pTmp > pAddressString) && (y >= 0) && (y <= UCHAR_MAX) &&
+                  ((*pTmp == '.') || (*pTmp == 0) || (*pTmp == ':'));
         if (*pTmp == ':') {
             pColon = pTmp;
         }
@@ -834,21 +824,19 @@ static bool ipv4StringToAddress(const char *pAddressString,
         z++;
     }
 
-    if (success && (z == sizeof(digits) /
-                    sizeof(digits[0]))) {
+    if (success && (z == sizeof(digits) / sizeof(digits[0]))) {
         // Got enough digits, now calculate the
         // IP address part in network-byte order
-        pAddress->ipAddress.address.ipv4 = (((uint32_t) digits[0]) << 24) |
-                                           (((uint32_t) digits[1]) << 16) |
-                                           (((uint32_t) digits[2]) << 8)  |
-                                           (((uint32_t) digits[3]) << 0);
+        pAddress->ipAddress.address.ipv4 =
+            (((uint32_t)digits[0]) << 24) | (((uint32_t)digits[1]) << 16) |
+            (((uint32_t)digits[2]) << 8) | (((uint32_t)digits[3]) << 0);
         // Check the port number on the end
         if (pColon != NULL) {
             success = false;
             // Fill in the port number
             y = strtol(pColon + 1, NULL, 10);
-            if (y <= (int32_t) USHRT_MAX) {
-                pAddress->port = (uint16_t) y;
+            if (y <= (int32_t)USHRT_MAX) {
+                pAddress->port = (uint16_t)y;
                 success = true;
             }
         }
@@ -859,8 +847,7 @@ static bool ipv4StringToAddress(const char *pAddressString,
 
 // Convert an IPV6 address string "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
 // or "[2001:0db8:85a3:0000:0000:8a2e:0370:7334]:65535" into a struct.
-static bool ipv6StringToAddress(const char *pAddressString,
-                                uSockAddress_t *pAddress)
+static bool ipv6StringToAddress(const char *pAddressString, uSockAddress_t *pAddress)
 {
     bool success = true;
     uint16_t digits[8];
@@ -871,8 +858,7 @@ static bool ipv6StringToAddress(const char *pAddressString,
     size_t z = 0;
 
     pAddress->ipAddress.type = U_SOCK_ADDRESS_TYPE_V6;
-    memset(pAddress->ipAddress.address.ipv6, 0,
-           sizeof(pAddress->ipAddress.address.ipv6));
+    memset(pAddress->ipAddress.address.ipv6, 0, sizeof(pAddress->ipAddress.address.ipv6));
     pAddress->port = 0;
 
     // See if there's a '[' on the start
@@ -884,17 +870,12 @@ static bool ipv6StringToAddress(const char *pAddressString,
     // Get the hex numbers from the IP address part,
     // moving pAddressString along and checking
     // for the colon before the port number as we go
-    for (size_t x = 0; (x < sizeof(digits) /
-                        sizeof(digits[0])) &&
-         success; x++) {
+    for (size_t x = 0; (x < sizeof(digits) / sizeof(digits[0])) && success; x++) {
         y = strtol(pAddressString, &pTmp, 16);
-        digits[x] = (uint16_t) y;
-        success = (pTmp > pAddressString) &&
-                  (y >= 0) && (y <= (int32_t) USHRT_MAX) &&
-                  ((*pTmp == ':') || (*pTmp == 0) ||
-                   ((*pTmp == ']') && hasPort));
-        if ((*pTmp == ']') && hasPort &&
-            (*(pTmp + 1) == ':')) {
+        digits[x] = (uint16_t)y;
+        success = (pTmp > pAddressString) && (y >= 0) && (y <= (int32_t)USHRT_MAX) &&
+                  ((*pTmp == ':') || (*pTmp == 0) || ((*pTmp == ']') && hasPort));
+        if ((*pTmp == ']') && hasPort && (*(pTmp + 1) == ':')) {
             pPortColon = pTmp + 1;
         }
         pAddressString = pTmp;
@@ -902,14 +883,13 @@ static bool ipv6StringToAddress(const char *pAddressString,
         z++;
     }
 
-    if (success && (z == sizeof(digits) /
-                    sizeof(digits[0]))) {
+    if (success && (z == sizeof(digits) / sizeof(digits[0]))) {
         // Got enough digits, now slot the uint16_t's
         // into the array in network-byte order
-        pAddress->ipAddress.address.ipv6[3] = (((uint32_t) digits[0]) << 16) | (digits[1]);
-        pAddress->ipAddress.address.ipv6[2] = (((uint32_t) digits[2]) << 16) | (digits[3]);
-        pAddress->ipAddress.address.ipv6[1] = (((uint32_t) digits[4]) << 16) | (digits[5]);
-        pAddress->ipAddress.address.ipv6[0] = (((uint32_t) digits[6]) << 16) | (digits[7]);
+        pAddress->ipAddress.address.ipv6[3] = (((uint32_t)digits[0]) << 16) | (digits[1]);
+        pAddress->ipAddress.address.ipv6[2] = (((uint32_t)digits[2]) << 16) | (digits[3]);
+        pAddress->ipAddress.address.ipv6[1] = (((uint32_t)digits[4]) << 16) | (digits[5]);
+        pAddress->ipAddress.address.ipv6[0] = (((uint32_t)digits[6]) << 16) | (digits[7]);
 
         // Get the port number if there was one
         if (hasPort) {
@@ -917,8 +897,8 @@ static bool ipv6StringToAddress(const char *pAddressString,
             if (pPortColon != NULL) {
                 // Fill in the port number
                 y = strtol(pPortColon + 1, NULL, 10);
-                if (y <= (int32_t) USHRT_MAX) {
-                    pAddress->port = (uint16_t) y;
+                if (y <= (int32_t)USHRT_MAX) {
+                    pAddress->port = (uint16_t)y;
                     success = true;
                 }
             }
@@ -930,51 +910,48 @@ static bool ipv6StringToAddress(const char *pAddressString,
 
 // Convert an IP address struct (i.e. without a port number) into a
 // string, returning the length of the string.
-static int32_t ipAddressToString(const uSockIpAddress_t *pIpAddress,
-                                 char *pBuffer,
+static int32_t ipAddressToString(const uSockIpAddress_t *pIpAddress, char *pBuffer,
                                  size_t sizeBytes)
 {
-    int32_t stringLengthOrError = (int32_t) U_ERROR_COMMON_INVALID_PARAMETER;
+    int32_t stringLengthOrError = (int32_t)U_ERROR_COMMON_INVALID_PARAMETER;
     size_t thisLength;
 
     // Convert the address in network byte order (MSB first);
     switch (pIpAddress->type) {
-        case U_SOCK_ADDRESS_TYPE_V4:
-            stringLengthOrError = snprintf(pBuffer, sizeBytes,
-                                           "%u.%u.%u.%u",
-                                           (unsigned int) ((pIpAddress->address.ipv4 >> 24) & 0xFF),
-                                           (unsigned int) ((pIpAddress->address.ipv4 >> 16) & 0xFF),
-                                           (unsigned int) ((pIpAddress->address.ipv4 >> 8)  & 0xFF),
-                                           (unsigned int) ((pIpAddress->address.ipv4 >> 0)  & 0xFF));
-            break;
-        case U_SOCK_ADDRESS_TYPE_V6:
-            stringLengthOrError = 0;
-            for (int32_t x = 3; (x >= 0) && (stringLengthOrError >= 0); x--) {
-                thisLength = snprintf(pBuffer, sizeBytes,
-                                      "%x:%x",
-                                      (unsigned int) ((pIpAddress->address.ipv6[x] >> 16) & 0xFFFF),
-                                      (unsigned int) ((pIpAddress->address.ipv6[x] >> 0)  & 0xFFFF));
-                if (x > 0) {
-                    if (thisLength < sizeBytes) {
-                        *(pBuffer + thisLength) = ':';
-                        thisLength++;
-                    } else {
-                        stringLengthOrError = (int32_t) U_ERROR_COMMON_NO_MEMORY;
-                    }
-                }
+    case U_SOCK_ADDRESS_TYPE_V4:
+        stringLengthOrError = snprintf(pBuffer, sizeBytes, "%u.%u.%u.%u",
+                                       (unsigned int)((pIpAddress->address.ipv4 >> 24) & 0xFF),
+                                       (unsigned int)((pIpAddress->address.ipv4 >> 16) & 0xFF),
+                                       (unsigned int)((pIpAddress->address.ipv4 >> 8) & 0xFF),
+                                       (unsigned int)((pIpAddress->address.ipv4 >> 0) & 0xFF));
+        break;
+    case U_SOCK_ADDRESS_TYPE_V6:
+        stringLengthOrError = 0;
+        for (int32_t x = 3; (x >= 0) && (stringLengthOrError >= 0); x--) {
+            thisLength = snprintf(pBuffer, sizeBytes, "%x:%x",
+                                  (unsigned int)((pIpAddress->address.ipv6[x] >> 16) & 0xFFFF),
+                                  (unsigned int)((pIpAddress->address.ipv6[x] >> 0) & 0xFFFF));
+            if (x > 0) {
                 if (thisLength < sizeBytes) {
-                    sizeBytes -= thisLength;
-                    pBuffer += thisLength;
-                    stringLengthOrError += (int32_t) thisLength;
+                    *(pBuffer + thisLength) = ':';
+                    thisLength++;
                 } else {
-                    stringLengthOrError = (int32_t) U_ERROR_COMMON_NO_MEMORY;
+                    stringLengthOrError = (int32_t)U_ERROR_COMMON_NO_MEMORY;
                 }
             }
-            break;
-        case U_SOCK_ADDRESS_TYPE_V4_V6:
-        //fall-through
-        default:
-            break;
+            if (thisLength < sizeBytes) {
+                sizeBytes -= thisLength;
+                pBuffer += thisLength;
+                stringLengthOrError += (int32_t)thisLength;
+            } else {
+                stringLengthOrError = (int32_t)U_ERROR_COMMON_NO_MEMORY;
+            }
+        }
+        break;
+    case U_SOCK_ADDRESS_TYPE_V4_V6:
+    // fall-through
+    default:
+        break;
     }
 
     return stringLengthOrError;
@@ -982,12 +959,10 @@ static int32_t ipAddressToString(const uSockIpAddress_t *pIpAddress,
 
 // Convert an address struct, which includes a port number,
 // into a string, returning the length of the string.
-static int32_t addressToString(const uSockAddress_t *pAddress,
-                               bool includePortNumber,
-                               char *pBuffer,
-                               size_t sizeBytes)
+static int32_t addressToString(const uSockAddress_t *pAddress, bool includePortNumber,
+                               char *pBuffer, size_t sizeBytes)
 {
-    int32_t stringLengthOrError = (int32_t) U_ERROR_COMMON_SUCCESS;
+    int32_t stringLengthOrError = (int32_t)U_ERROR_COMMON_SUCCESS;
     int32_t thisLength;
 
     if (includePortNumber) {
@@ -1000,13 +975,12 @@ static int32_t addressToString(const uSockAddress_t *pAddress,
                 sizeBytes--;
                 pBuffer++;
             } else {
-                stringLengthOrError =  (int32_t) U_ERROR_COMMON_NO_MEMORY;
+                stringLengthOrError = (int32_t)U_ERROR_COMMON_NO_MEMORY;
             }
         }
         // Do the IP address part
         if (stringLengthOrError >= 0) {
-            thisLength = ipAddressToString(&(pAddress->ipAddress),
-                                           pBuffer, sizeBytes);
+            thisLength = ipAddressToString(&(pAddress->ipAddress), pBuffer, sizeBytes);
             if (thisLength >= 0) {
                 sizeBytes -= thisLength;
                 pBuffer += thisLength;
@@ -1019,53 +993,50 @@ static int32_t addressToString(const uSockAddress_t *pAddress,
                         sizeBytes--;
                         pBuffer++;
                     } else {
-                        stringLengthOrError =  (int32_t) U_ERROR_COMMON_NO_MEMORY;
+                        stringLengthOrError = (int32_t)U_ERROR_COMMON_NO_MEMORY;
                     }
                 }
             } else {
-                stringLengthOrError =  (int32_t) U_ERROR_COMMON_NO_MEMORY;
+                stringLengthOrError = (int32_t)U_ERROR_COMMON_NO_MEMORY;
             }
         }
         // Add the port number
         if (stringLengthOrError >= 0) {
-            thisLength = snprintf(pBuffer, sizeBytes, ":%u",
-                                  pAddress->port);
-            if (thisLength < (int32_t) sizeBytes) {
+            thisLength = snprintf(pBuffer, sizeBytes, ":%u", pAddress->port);
+            if (thisLength < (int32_t)sizeBytes) {
                 stringLengthOrError += thisLength;
             } else {
-                stringLengthOrError =  (int32_t) U_ERROR_COMMON_NO_MEMORY;
+                stringLengthOrError = (int32_t)U_ERROR_COMMON_NO_MEMORY;
             }
         }
     } else {
         // No port number required, just do the ipAddress part
-        stringLengthOrError = ipAddressToString(&(pAddress->ipAddress),
-                                                pBuffer, sizeBytes);
+        stringLengthOrError = ipAddressToString(&(pAddress->ipAddress), pBuffer, sizeBytes);
     }
 
-    return (int32_t) stringLengthOrError;
+    return (int32_t)stringLengthOrError;
 }
 
 // Print out a socket option for debug purposes.
-//lint -esym(522, printSocketOption) Suppress "lacks side effects"
+// lint -esym(522, printSocketOption) Suppress "lacks side effects"
 // when compiled out
-static void printSocketOption(const void *pOptionValue,
-                              size_t optionValueLength)
+static void printSocketOption(const void *pOptionValue, size_t optionValueLength)
 {
 #if U_CFG_ENABLE_LOGGING
     int32_t y;
 
-    uPortLog("[%d int32s] ", optionValueLength / sizeof(int32_t));
+    LOG_INF("[%d int32s] ", optionValueLength / sizeof(int32_t));
     if ((pOptionValue != NULL) && (optionValueLength > 0)) {
         // Print a series of int32_t's
-        //lint -e{826} Suppress suspicious pointer warning
+        // lint -e{826} Suppress suspicious pointer warning
         for (size_t x = 0; x < optionValueLength / sizeof(int32_t); x++) {
-            y = *((const int32_t *) (((const char *) pOptionValue) + (x * 4)));
-            uPortLog("%d (0x%08x) ", y, y);
+            y = *((const int32_t *)(((const char *)pOptionValue) + (x * 4)));
+            LOG_INF("%d (0x%08x) ", y, y);
         }
     }
 #else
-    (void) pOptionValue;
-    (void) optionValueLength;
+    (void)pOptionValue;
+    (void)optionValueLength;
 #endif
 }
 
@@ -1073,12 +1044,10 @@ static void printSocketOption(const void *pOptionValue,
  * STATIC FUNCTIONS: Creating
  * -------------------------------------------------------------- */
 
-static int32_t uSockCreateEx(uDeviceHandle_t devHandle,
-                             uSockType_t type,
-                             uSockProtocol_t protocol,
+static int32_t uSockCreateEx(uDeviceHandle_t devHandle, uSockType_t type, uSockProtocol_t protocol,
                              int32_t sockHandle)
 {
-    int32_t descriptorOrError = (int32_t) U_ERROR_COMMON_SUCCESS;
+    int32_t descriptorOrError = (int32_t)U_ERROR_COMMON_SUCCESS;
     int32_t errnoLocal;
     uSockContainer_t *pContainer = NULL;
     uSockDescriptor_t descriptor = gNextDescriptor;
@@ -1103,7 +1072,7 @@ static int32_t uSockCreateEx(uDeviceHandle_t devHandle,
         errnoLocal = U_SOCK_ENOBUFS;
         if (numContainersInUse() < U_SOCK_MAX_NUM_SOCKETS) {
             // Find the next free descriptor
-            descriptorOrError = (int32_t) U_ERROR_COMMON_BSD_ERROR;
+            descriptorOrError = (int32_t)U_ERROR_COMMON_BSD_ERROR;
             while (descriptorOrError < 0) {
                 // Try the descriptor value, making sure
                 // each time that it can't be found.
@@ -1112,14 +1081,12 @@ static int32_t uSockCreateEx(uDeviceHandle_t devHandle,
                     U_SOCK_INC_DESCRIPTOR(gNextDescriptor);
                     // Found a free descriptor, now try to
                     // create the socket in a container
-                    pContainer = pSockContainerCreate(descriptor,
-                                                      type, protocol);
+                    pContainer = pSockContainerCreate(descriptor, type, protocol);
                     if (pContainer != NULL) {
-                        descriptorOrError = (int32_t) descriptor;
+                        descriptorOrError = (int32_t)descriptor;
                     } else {
                         errnoLocal = U_SOCK_ENOMEM;
-                        uPortLog("U_SOCK: unable to allocate memory"
-                                 " for socket.\n");
+                        LOG_ERR("unable to allocate memory for socket");
                         // Exit stage left
                         break;
                     }
@@ -1135,9 +1102,9 @@ static int32_t uSockCreateEx(uDeviceHandle_t devHandle,
                     // encountered this network layer,
                     // ask the underlying cell/wifi sockets
                     // layer to initialise it
-                    if (devType == (int32_t) U_DEVICE_TYPE_CELL) {
+                    if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
                         errnoLocal = -uCellSockInitInstance(devHandle);
-                    } else if (devType == (int32_t) U_DEVICE_TYPE_SHORT_RANGE) {
+                    } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
                         errnoLocal = -uWifiSockInitInstance(devHandle);
                     }
                 }
@@ -1147,18 +1114,15 @@ static int32_t uSockCreateEx(uDeviceHandle_t devHandle,
                 // the U_SOCK_Exxx list
                 if (errnoLocal == 0) {
                     if (sockHandle < 0) {
-                        if (devType == (int32_t) U_DEVICE_TYPE_CELL) {
-                            sockHandle = uCellSockCreate(devHandle,
-                                                         type, protocol);
+                        if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
+                            sockHandle = uCellSockCreate(devHandle, type, protocol);
                             // Setting non-blocking so that
                             // we do the blocking here instead.
                             // Since this has no return value
                             // we can do it at the same time
-                            uCellSockBlockingSet(devHandle,
-                                                 sockHandle, false);
-                        } else if (devType == (int32_t) U_DEVICE_TYPE_SHORT_RANGE) {
-                            sockHandle = uWifiSockCreate(devHandle,
-                                                         type, protocol);
+                            uCellSockBlockingSet(devHandle, sockHandle, false);
+                        } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
+                            sockHandle = uWifiSockCreate(devHandle, type, protocol);
                             // TODO: Set blocking stuff
                         }
                     }
@@ -1169,28 +1133,27 @@ static int32_t uSockCreateEx(uDeviceHandle_t devHandle,
                         pContainer->socket.sockHandle = sockHandle;
                         pContainer->socket.devHandle = devHandle;
                         pContainer->socket.bytesSent = 0;
-                        uPortLog("U_SOCK: socket created, descriptor %d,"
-                                 " network handle 0x%08x, socket handle %d.\n",
-                                 descriptorOrError, devHandle, sockHandle);
+                        LOG_INF(
+                            "socket created, descriptor %d, network handle %p, socket handle %d",
+                            descriptorOrError, devHandle, sockHandle);
                     } else {
                         // Set errno
                         errnoLocal = -sockHandle;
                         // Free the container once more
                         containerFree(descriptorOrError);
-                        uPortLog("U_SOCK: underlying socket layer could not create"
-                                 " socket (errno %d).\n", errnoLocal);
+                        LOG_ERR("underlying socket layer could not create socket (errno %d)",
+                                errnoLocal);
                     }
                 }
             }
         }
-
         U_PORT_MUTEX_UNLOCK(gMutexContainer);
     }
 
     if (errnoLocal != U_SOCK_ENONE) {
         // Write the errno
         errno = errnoLocal;
-        descriptorOrError = (int32_t) U_ERROR_COMMON_BSD_ERROR;
+        descriptorOrError = (int32_t)U_ERROR_COMMON_BSD_ERROR;
     }
 
     return descriptorOrError;
@@ -1201,8 +1164,7 @@ static int32_t uSockCreateEx(uDeviceHandle_t devHandle,
  * -------------------------------------------------------------- */
 
 // Receive data on a socket, either UDP or TCP.
-static int32_t receive(const uSockContainer_t *pContainer,
-                       uSockAddress_t *pRemoteAddress,
+static int32_t receive(const uSockContainer_t *pContainer, uSockAddress_t *pRemoteAddress,
                        void *pData, size_t dataSizeBytes)
 {
     uDeviceHandle_t devHandle = pContainer->socket.devHandle;
@@ -1217,41 +1179,27 @@ static int32_t receive(const uSockContainer_t *pContainer,
         if ((pContainer->socket.protocol == U_SOCK_PROTOCOL_UDP) &&
             (pContainer->socket.pSecurityContext == NULL)) {
             // UDP style
-            if (devType == (int32_t) U_DEVICE_TYPE_CELL) {
-                negErrnoOrSize = uCellSockReceiveFrom(devHandle,
-                                                      sockHandle,
-                                                      pRemoteAddress,
-                                                      pData,
+            if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
+                negErrnoOrSize = uCellSockReceiveFrom(devHandle, sockHandle, pRemoteAddress, pData,
                                                       dataSizeBytes);
-            } else if (devType == (int32_t) U_DEVICE_TYPE_SHORT_RANGE) {
-                negErrnoOrSize = uWifiSockReceiveFrom(devHandle,
-                                                      sockHandle,
-                                                      pRemoteAddress,
-                                                      pData,
+            } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
+                negErrnoOrSize = uWifiSockReceiveFrom(devHandle, sockHandle, pRemoteAddress, pData,
                                                       dataSizeBytes);
             }
         } else {
             // TCP or DTLS style
-            if (devType == (int32_t) U_DEVICE_TYPE_CELL) {
-                negErrnoOrSize = uCellSockRead(devHandle,
-                                               sockHandle,
-                                               pData,
-                                               dataSizeBytes);
-            } else if (devType == (int32_t) U_DEVICE_TYPE_SHORT_RANGE) {
-                negErrnoOrSize = uWifiSockRead(devHandle,
-                                               sockHandle,
-                                               pData,
-                                               dataSizeBytes);
+            if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
+                negErrnoOrSize = uCellSockRead(devHandle, sockHandle, pData, dataSizeBytes);
+            } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
+                negErrnoOrSize = uWifiSockRead(devHandle, sockHandle, pData, dataSizeBytes);
             }
         }
         if (negErrnoOrSize < 0) {
             // Yield for the poll interval
             uPortTaskBlock(U_SOCK_RECEIVE_POLL_INTERVAL_MS);
         }
-    } while ((negErrnoOrSize < 0) &&
-             (pContainer->socket.blocking) &&
-             (uPortGetTickTimeMs() - startTimeMs <
-              pContainer->socket.receiveTimeoutMs));
+    } while ((negErrnoOrSize < 0) && (pContainer->socket.blocking) &&
+             (uPortGetTickTimeMs() - startTimeMs < pContainer->socket.receiveTimeoutMs));
 
     return negErrnoOrSize;
 }
@@ -1260,17 +1208,15 @@ static int32_t receive(const uSockContainer_t *pContainer,
  * PUBLIC FUNCTIONS: CREATE/OPEN/CLOSE/CLEAN-UP
  * -------------------------------------------------------------- */
 
-int32_t uSockCreate(uDeviceHandle_t devHandle, uSockType_t type,
-                    uSockProtocol_t protocol)
+int32_t uSockCreate(uDeviceHandle_t devHandle, uSockType_t type, uSockProtocol_t protocol)
 {
     return uSockCreateEx(devHandle, type, protocol, -1);
 }
 
 // Make an outgoing connection on the given socket.
-int32_t uSockConnect(uSockDescriptor_t descriptor,
-                     const uSockAddress_t *pRemoteAddress)
+int32_t uSockConnect(uSockDescriptor_t descriptor, const uSockAddress_t *pRemoteAddress)
 {
-    int32_t errorCode = (int32_t) U_ERROR_COMMON_SUCCESS;
+    int32_t errorCode = (int32_t)U_ERROR_COMMON_SUCCESS;
     int32_t errnoLocal;
     uSockContainer_t *pContainer = NULL;
     uDeviceHandle_t devHandle;
@@ -1302,45 +1248,34 @@ int32_t uSockConnect(uSockDescriptor_t descriptor,
                     sockHandle = pContainer->socket.sockHandle;
                     errnoLocal = U_SOCK_ENONE;
                     errorCode = -U_SOCK_ENOSYS;
-                    uPortLog("U_SOCK: connecting socket to \"%.*s\"...\n",
-                             addressToString(pRemoteAddress, true,
-                                             buffer, sizeof(buffer)),
-                             buffer);
+                    LOG_INF("connecting socket to \"%.*s\"...",
+                            addressToString(pRemoteAddress, true, buffer, sizeof(buffer)), buffer);
                     int32_t devType = uDeviceGetDeviceType(devHandle);
-                    if (devType == (int32_t) U_DEVICE_TYPE_CELL) {
-                        errorCode = uCellSockConnect(devHandle,
-                                                     sockHandle,
-                                                     pRemoteAddress);
-                    } else if (devType == (int32_t) U_DEVICE_TYPE_SHORT_RANGE) {
-                        errorCode = uWifiSockConnect(devHandle,
-                                                     sockHandle,
-                                                     pRemoteAddress);
+                    if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
+                        errorCode = uCellSockConnect(devHandle, sockHandle, pRemoteAddress);
+                    } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
+                        errorCode = uWifiSockConnect(devHandle, sockHandle, pRemoteAddress);
                     }
 
                     if (errorCode == 0) {
                         // All is good
-                        memcpy(&pContainer->socket.remoteAddress,
-                               pRemoteAddress,
+                        memcpy(&pContainer->socket.remoteAddress, pRemoteAddress,
                                sizeof(pContainer->socket.remoteAddress));
                         pContainer->socket.state = U_SOCK_STATE_CONNECTED;
-                        uPortLog("U_SOCK: socket with descriptor %d, network"
-                                 " handle 0x%08x, socket handle %d, is "
-                                 " connected to address \"%.*s\".\n",
-                                 descriptor, devHandle, sockHandle,
-                                 addressToString(&pContainer->socket.remoteAddress,
-                                                 true, buffer,
-                                                 sizeof(buffer)),
-                                 buffer);
+                        LOG_INF("socket with descriptor %d, network handle %p, socket handle "
+                                "%d, is  connected to address \"%.*s\".",
+                                descriptor, devHandle, sockHandle,
+                                addressToString(&pContainer->socket.remoteAddress, true, buffer,
+                                                sizeof(buffer)),
+                                buffer);
                     } else {
                         // Set errno
                         errnoLocal = -errorCode;
-                        uPortLog("U_SOCK: underlying layer errno %d on"
-                                 " address \"%.*s\", descriptor/"
-                                 "network/socket %d/0x%08x/%d.\n", errnoLocal,
-                                 addressToString(pRemoteAddress, true,
-                                                 buffer, sizeof(buffer)),
-                                 buffer, descriptor, devHandle,
-                                 sockHandle);
+                        LOG_ERR("underlying layer errno %d on address \"%.*s\", "
+                                "descriptor/network/socket %d/%p/%d.",
+                                errnoLocal,
+                                addressToString(pRemoteAddress, true, buffer, sizeof(buffer)),
+                                buffer, descriptor, devHandle, sockHandle);
                     }
                 }
             }
@@ -1352,7 +1287,7 @@ int32_t uSockConnect(uSockDescriptor_t descriptor,
     if (errnoLocal != U_SOCK_ENONE) {
         // Write the errno
         errno = errnoLocal;
-        errorCode = (int32_t) U_ERROR_COMMON_BSD_ERROR;
+        errorCode = (int32_t)U_ERROR_COMMON_BSD_ERROR;
     }
 
     return errorCode;
@@ -1361,13 +1296,13 @@ int32_t uSockConnect(uSockDescriptor_t descriptor,
 // Close a socket.
 int32_t uSockClose(uSockDescriptor_t descriptor)
 {
-    int32_t errorCode = (int32_t) U_ERROR_COMMON_SUCCESS;
+    int32_t errorCode = (int32_t)U_ERROR_COMMON_SUCCESS;
     int32_t errnoLocal;
     uSockContainer_t *pContainer = NULL;
     uDeviceHandle_t devHandle;
     int32_t sockHandle;
     uSockState_t finalState = U_SOCK_STATE_CLOSED;
-    void (*pAsyncClosedCallback) (uDeviceHandle_t, int32_t) = NULL;
+    void (*pAsyncClosedCallback)(uDeviceHandle_t, int32_t) = NULL;
 
     errnoLocal = init();
     if (errnoLocal == U_SOCK_ENONE) {
@@ -1392,26 +1327,21 @@ int32_t uSockClose(uSockDescriptor_t descriptor)
             errnoLocal = U_SOCK_ENONE;
             errorCode = -U_SOCK_ENOSYS;
             int32_t devType = uDeviceGetDeviceType(devHandle);
-            if (devType == (int32_t) U_DEVICE_TYPE_CELL) {
+            if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
                 // In the cellular case asynchronous TCP
                 // socket closure is used in some cases.
                 if (pContainer->socket.protocol == U_SOCK_PROTOCOL_TCP) {
                     finalState = U_SOCK_STATE_CLOSING;
                     pAsyncClosedCallback = closedCallback;
                 }
-                errorCode = uCellSockClose(devHandle,
-                                           sockHandle,
-                                           pAsyncClosedCallback);
-            } else if (devType == (int32_t) U_DEVICE_TYPE_SHORT_RANGE) {
-                errorCode = uWifiSockClose(devHandle,
-                                           sockHandle,
-                                           pAsyncClosedCallback);
+                errorCode = uCellSockClose(devHandle, sockHandle, pAsyncClosedCallback);
+            } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
+                errorCode = uWifiSockClose(devHandle, sockHandle, pAsyncClosedCallback);
             }
             if (errorCode == 0) {
-                uPortLog("U_SOCK: socket with descriptor %d,"
-                         " network handle 0x%08x, socket handle %d,"
-                         " has been closed.\n",
-                         descriptor, devHandle, sockHandle);
+                LOG_INF("socket with descriptor %d, network handle %p, socket handle %d, has "
+                        "been closed",
+                        descriptor, devHandle, sockHandle);
                 if (pContainer->socket.state != U_SOCK_STATE_CLOSED) {
                     // Now mark the socket as closed (or closing).
                     // Socket is only freed by a call to
@@ -1433,11 +1363,9 @@ int32_t uSockClose(uSockDescriptor_t descriptor)
                 }
             } else {
                 errnoLocal = -errorCode;
-                uPortLog("U_SOCK: underlying socket layer returned"
-                         " errno %d on closing descriptor %d,"
-                         " network handle 0x%08x, socket handle %d.\n",
-                         errnoLocal, descriptor, devHandle,
-                         sockHandle);
+                LOG_ERR("underlying socket layer returned errno %d on closing descriptor %d, "
+                        "network handle %p, socket handle %d",
+                        errnoLocal, descriptor, devHandle, sockHandle);
             }
         }
 
@@ -1447,7 +1375,7 @@ int32_t uSockClose(uSockDescriptor_t descriptor)
     if (errnoLocal != U_SOCK_ENONE) {
         // Write the errno
         errno = errnoLocal;
-        errorCode = (int32_t) U_ERROR_COMMON_BSD_ERROR;
+        errorCode = (int32_t)U_ERROR_COMMON_BSD_ERROR;
     }
 
     return errorCode;
@@ -1508,9 +1436,9 @@ void uSockCleanUp()
                     int32_t devType = uDeviceGetDeviceType(devHandle);
                     // Call the clean-up function in the underlying
                     // socket layer, where present
-                    if (devType == (int32_t) U_DEVICE_TYPE_CELL) {
+                    if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
                         uCellSockCleanup(devHandle);
-                    } else if (devType == (int32_t) U_DEVICE_TYPE_SHORT_RANGE) {
+                    } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
                         uWifiSockCleanup(devHandle);
                     }
                 }
@@ -1554,9 +1482,9 @@ void uSockDeinit()
                 devHandle = pContainer->socket.devHandle;
                 sockHandle = pContainer->socket.sockHandle;
                 int32_t devType = uDeviceGetDeviceType(devHandle);
-                if (devType == (int32_t) U_DEVICE_TYPE_CELL) {
+                if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
                     uCellSockClose(devHandle, sockHandle, NULL);
-                } else if (devType == (int32_t) U_DEVICE_TYPE_SHORT_RANGE) {
+                } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
                     uWifiSockClose(devHandle, sockHandle, NULL);
                 }
             }
@@ -1662,22 +1590,18 @@ bool uSockBlockingGet(uSockDescriptor_t descriptor)
 }
 
 // Set the options for the given socket.
-int32_t uSockOptionSet(uSockDescriptor_t descriptor,
-                       int32_t level, uint32_t option,
-                       const void *pOptionValue,
-                       size_t optionValueLength)
+int32_t uSockOptionSet(uSockDescriptor_t descriptor, int32_t level, uint32_t option,
+                       const void *pOptionValue, size_t optionValueLength)
 {
-    int32_t errorCode = (int32_t) U_ERROR_COMMON_SUCCESS;
+    int32_t errorCode = (int32_t)U_ERROR_COMMON_SUCCESS;
     int32_t errnoLocal;
     uSockContainer_t *pContainer = NULL;
     uDeviceHandle_t devHandle;
     int32_t sockHandle;
 
-    uPortLog("U_SOCK: option set command %d:0x%04x called"
-             " on descriptor %d with value ", option, level,
-             descriptor);
+    LOG_INF("option set command %d:0x%04x called on descriptor %d with value", option, level,
+            descriptor);
     printSocketOption(pOptionValue, optionValueLength);
-    uPortLog("\n");
 
     errnoLocal = init();
     if (errnoLocal == U_SOCK_ENONE) {
@@ -1690,27 +1614,21 @@ int32_t uSockOptionSet(uSockDescriptor_t descriptor,
         if (pContainer != NULL) {
             errnoLocal = U_SOCK_EINVAL;
             // Check parameters
-            if ((optionValueLength == 0) ||
-                ((optionValueLength > 0) && (pOptionValue != NULL))) {
-                if ((level == U_SOCK_OPT_LEVEL_SOCK) &&
-                    (option == U_SOCK_OPT_RCVTIMEO)) {
+            if ((optionValueLength == 0) || ((optionValueLength > 0) && (pOptionValue != NULL))) {
+                if ((level == U_SOCK_OPT_LEVEL_SOCK) && (option == U_SOCK_OPT_RCVTIMEO)) {
                     // Receive timeout we set locally
-                    if ((pOptionValue != NULL) &&
-                        (optionValueLength == sizeof(struct timeval))) {
+                    if ((pOptionValue != NULL) && (optionValueLength == sizeof(struct timeval))) {
                         // All good
                         errnoLocal = U_SOCK_ENONE;
                         pContainer->socket.receiveTimeoutMs =
-                            (((const struct timeval *) pOptionValue)->tv_usec / 1000) +
-                            (((int64_t) ((const struct timeval *) pOptionValue)->tv_sec) * 1000);
-                        uPortLog("U_SOCK: timeout for socket descriptor"
-                                 " %d set to %d ms.\n", descriptor,
-                                 (int32_t) pContainer->socket.receiveTimeoutMs);
+                            (((const struct timeval *)pOptionValue)->tv_usec / 1000) +
+                            (((int64_t)((const struct timeval *)pOptionValue)->tv_sec) * 1000);
+                        LOG_INF("timeout for socket descriptor %d set to %d ms", descriptor,
+                                (int32_t)pContainer->socket.receiveTimeoutMs);
                     } else {
-                        uPortLog("U_SOCK: socket option %d:0x%04x"
-                                 " could not be set to value ",
-                                 option, level);
+                        LOG_INF("socket option %d:0x%04x could not be set to value ", option,
+                                level);
                         printSocketOption(pOptionValue, optionValueLength);
-                        uPortLog("\n");
                     }
                 } else {
                     // Otherwise talk to the underlying socket
@@ -1722,35 +1640,25 @@ int32_t uSockOptionSet(uSockDescriptor_t descriptor,
                     errnoLocal = U_SOCK_ENONE;
                     errorCode = -U_SOCK_ENOSYS;
                     int32_t devType = uDeviceGetDeviceType(devHandle);
-                    if (devType == (int32_t) U_DEVICE_TYPE_CELL) {
-                        errorCode = uCellSockOptionSet(devHandle,
-                                                       sockHandle,
-                                                       level, option,
-                                                       pOptionValue,
-                                                       optionValueLength);
-                    } else if (devType == (int32_t) U_DEVICE_TYPE_SHORT_RANGE) {
-                        errorCode = uWifiSockOptionSet(devHandle,
-                                                       sockHandle,
-                                                       level, option,
-                                                       pOptionValue,
-                                                       optionValueLength);
+                    if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
+                        errorCode = uCellSockOptionSet(devHandle, sockHandle, level, option,
+                                                       pOptionValue, optionValueLength);
+                    } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
+                        errorCode = uWifiSockOptionSet(devHandle, sockHandle, level, option,
+                                                       pOptionValue, optionValueLength);
                     }
 
                     if (errorCode == 0) {
                         // All good
-                        uPortLog("U_SOCK: socket option %d:0x%04x"
-                                 " set to value ", option, level);
+                        LOG_INF("socket option %d:0x%04x set to value", option, level);
                     } else {
                         // Invalid argument
                         errnoLocal = -errorCode;
-                        uPortLog("U_SOCK: errno %d when setting"
-                                 " socket option %d:0x%04x to value ",
-                                 errnoLocal, option, level);
+                        LOG_ERR("errno %d when setting socket option %d:0x%04x to value",
+                                errnoLocal, option, level);
                     }
                     printSocketOption(pOptionValue, optionValueLength);
-                    uPortLog("by network handle 0x%08x, socket"
-                             " handle %d.\n", devHandle,
-                             sockHandle);
+                    LOG_INF(" by network handle %p, socket handle %d", devHandle, sockHandle);
                 }
             }
         }
@@ -1761,19 +1669,17 @@ int32_t uSockOptionSet(uSockDescriptor_t descriptor,
     if (errnoLocal != U_SOCK_ENONE) {
         // Write the errno
         errno = errnoLocal;
-        errorCode = (int32_t) U_ERROR_COMMON_BSD_ERROR;
+        errorCode = (int32_t)U_ERROR_COMMON_BSD_ERROR;
     }
 
     return errorCode;
 }
 
 // Get the options for the given socket.
-int32_t uSockOptionGet(uSockDescriptor_t descriptor,
-                       int32_t level, uint32_t option,
-                       void *pOptionValue,
-                       size_t *pOptionValueLength)
+int32_t uSockOptionGet(uSockDescriptor_t descriptor, int32_t level, uint32_t option,
+                       void *pOptionValue, size_t *pOptionValueLength)
 {
-    int32_t errorCode = (int32_t) U_ERROR_COMMON_SUCCESS;
+    int32_t errorCode = (int32_t)U_ERROR_COMMON_SUCCESS;
     int32_t errnoLocal;
     uSockContainer_t *pContainer = NULL;
     uDeviceHandle_t devHandle;
@@ -1790,24 +1696,21 @@ int32_t uSockOptionGet(uSockDescriptor_t descriptor,
         if (pContainer != NULL) {
             errnoLocal = U_SOCK_EINVAL;
             // If there's an optionValue then there must be a length
-            if ((pOptionValue == NULL) ||
-                (pOptionValueLength != NULL)) {
-                if ((level == U_SOCK_OPT_LEVEL_SOCK) &&
-                    (option == U_SOCK_OPT_RCVTIMEO)) {
+            if ((pOptionValue == NULL) || (pOptionValueLength != NULL)) {
+                if ((level == U_SOCK_OPT_LEVEL_SOCK) && (option == U_SOCK_OPT_RCVTIMEO)) {
                     // Receive timeout we have locally
                     if (pOptionValueLength != NULL) {
                         if (pOptionValue != NULL) {
                             if (*pOptionValueLength >= sizeof(struct timeval)) {
                                 errnoLocal = U_SOCK_ENONE;
                                 // Return the answer
-                                ((struct timeval *) pOptionValue)->tv_sec =
-                                    (int32_t) (pContainer->socket.receiveTimeoutMs / 1000);
-                                ((struct timeval *) pOptionValue)->tv_usec =
+                                ((struct timeval *)pOptionValue)->tv_sec =
+                                    (int32_t)(pContainer->socket.receiveTimeoutMs / 1000);
+                                ((struct timeval *)pOptionValue)->tv_usec =
                                     (pContainer->socket.receiveTimeoutMs % 1000) * 1000;
                                 *pOptionValueLength = sizeof(struct timeval);
-                                uPortLog("U_SOCK: timeout for socket descriptor"
-                                         " %d is %d ms.\n", descriptor,
-                                         (int32_t) pContainer->socket.receiveTimeoutMs);
+                                LOG_WRN("timeout for socket descriptor %d is %d ms", descriptor,
+                                        (int32_t)pContainer->socket.receiveTimeoutMs);
                             }
                         } else {
                             errnoLocal = U_SOCK_ENONE;
@@ -1825,39 +1728,31 @@ int32_t uSockOptionGet(uSockDescriptor_t descriptor,
                     errnoLocal = U_SOCK_ENONE;
                     errorCode = -U_SOCK_ENOSYS;
                     int32_t devType = uDeviceGetDeviceType(devHandle);
-                    if (devType == (int32_t) U_DEVICE_TYPE_CELL) {
-                        errorCode = uCellSockOptionGet(devHandle,
-                                                       sockHandle,
-                                                       level, option,
-                                                       pOptionValue,
-                                                       pOptionValueLength);
-                    } else if (devType == (int32_t) U_DEVICE_TYPE_SHORT_RANGE) {
-                        errorCode = uWifiSockOptionGet(devHandle,
-                                                       sockHandle,
-                                                       level, option,
-                                                       pOptionValue,
-                                                       pOptionValueLength);
+                    if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
+                        errorCode = uCellSockOptionGet(devHandle, sockHandle, level, option,
+                                                       pOptionValue, pOptionValueLength);
+                    } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
+                        errorCode = uWifiSockOptionGet(devHandle, sockHandle, level, option,
+                                                       pOptionValue, pOptionValueLength);
                     }
 
                     if (errorCode == 0) {
                         // All good.
                         if (pOptionValue != NULL) {
-                            uPortLog("U_SOCK: the value of option %d:0x%04x"
-                                     " for socket descriptor %d is ", option,
-                                     level, descriptor);
+                            LOG_INF("the value of option %d:0x%04x for socket descriptor %d is ",
+                                    option, level, descriptor);
                             printSocketOption(pOptionValue, *pOptionValueLength);
-                            uPortLog("according to network handle 0x%08x, socket"
-                                     " handle %d.\n", devHandle, sockHandle);
+                            LOG_INF("according to network handle %p, socket handle %d", devHandle,
+                                    sockHandle);
                         }
                     } else {
                         // Set errno
                         errnoLocal = -errorCode;
-                        uPortLog("U_SOCK: getting the value of option"
-                                 " %d:0x%04x for socket descriptor %d from"
-                                 " network handle 0x%08x, socket handle %d,"
-                                 " returned errno %d.\n",
-                                 option, level, descriptor, devHandle,
-                                 sockHandle, errnoLocal);
+                        LOG_ERR("getting the value of option"
+                                " %d:0x%04x for socket descriptor %d from"
+                                " network handle %p, socket handle %d,"
+                                " returned errno %d",
+                                option, level, descriptor, devHandle, sockHandle, errnoLocal);
                     }
                 }
             }
@@ -1869,17 +1764,16 @@ int32_t uSockOptionGet(uSockDescriptor_t descriptor,
     if (errnoLocal != U_SOCK_ENONE) {
         // Write the errno
         errno = errnoLocal;
-        errorCode = (int32_t) U_ERROR_COMMON_BSD_ERROR;
+        errorCode = (int32_t)U_ERROR_COMMON_BSD_ERROR;
     }
 
     return errorCode;
 }
 
 // Add security to the given socket.
-int32_t uSockSecurity(uSockDescriptor_t descriptor,
-                      const uSecurityTlsSettings_t *pSettings)
+int32_t uSockSecurity(uSockDescriptor_t descriptor, const uSecurityTlsSettings_t *pSettings)
 {
-    int32_t errorCode = (int32_t) U_ERROR_COMMON_SUCCESS;
+    int32_t errorCode = (int32_t)U_ERROR_COMMON_SUCCESS;
     int32_t errnoLocal;
     uSockContainer_t *pContainer = NULL;
     uDeviceHandle_t devHandle;
@@ -1898,33 +1792,34 @@ int32_t uSockSecurity(uSockDescriptor_t descriptor,
             // Talk to the common security layer
             devHandle = pContainer->socket.devHandle;
             sockHandle = pContainer->socket.sockHandle;
-            pContainer->socket.pSecurityContext = pUSecurityTlsAdd(devHandle,
-                                                                   pSettings);
+            pContainer->socket.pSecurityContext = pUSecurityTlsAdd(devHandle, pSettings);
             if (pContainer->socket.pSecurityContext == NULL) {
                 errnoLocal = U_SOCK_ENOMEM;
             } else if (pContainer->socket.pSecurityContext->errorCode != 0) {
                 errorCode = pContainer->socket.pSecurityContext->errorCode;
                 uSecurityTlsRemove(pContainer->socket.pSecurityContext);
                 switch (errorCode) {
-                    case U_ERROR_COMMON_INVALID_PARAMETER:
-                        errnoLocal = U_SOCK_EINVAL;
-                        break;
-                    case U_ERROR_COMMON_NO_MEMORY:
-                        errnoLocal = U_SOCK_ENOMEM;
-                        break;
-                    default:
-                        errnoLocal = U_SOCK_EOPNOTSUPP;
-                        break;
+                case U_ERROR_COMMON_INVALID_PARAMETER:
+                    errnoLocal = U_SOCK_EINVAL;
+                    break;
+                case U_ERROR_COMMON_NO_MEMORY:
+                    errnoLocal = U_SOCK_ENOMEM;
+                    break;
+                default:
+                    errnoLocal = U_SOCK_EOPNOTSUPP;
+                    break;
                 }
             } else {
                 int32_t devType = uDeviceGetDeviceType(devHandle);
                 // We're good
-                if (devType == (int32_t) U_DEVICE_TYPE_CELL) {
+                if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
                     // In the cellular case the security
                     // profile has to be applied before connect
-                    errnoLocal = -uCellSockSecure(devHandle,
-                                                  sockHandle,
-                                                  ((uCellSecTlsContext_t *) (pContainer->socket.pSecurityContext->pNetworkSpecific))->profileId);
+                    errnoLocal = -uCellSockSecure(
+                        devHandle, sockHandle,
+                        ((uCellSecTlsContext_t *)(pContainer->socket.pSecurityContext
+                                                      ->pNetworkSpecific))
+                            ->profileId);
                 }
             }
         }
@@ -1935,7 +1830,7 @@ int32_t uSockSecurity(uSockDescriptor_t descriptor,
     if (errnoLocal != U_SOCK_ENONE) {
         // Write the errno
         errno = errnoLocal;
-        errorCode = (int32_t) U_ERROR_COMMON_BSD_ERROR;
+        errorCode = (int32_t)U_ERROR_COMMON_BSD_ERROR;
     }
 
     return errorCode;
@@ -1944,7 +1839,7 @@ int32_t uSockSecurity(uSockDescriptor_t descriptor,
 // Set a local port which will be used on the next uSockCreate().
 int32_t uSockSetNextLocalPort(uDeviceHandle_t devHandle, int32_t port)
 {
-    int32_t errorCode = (int32_t) U_ERROR_COMMON_SUCCESS;
+    int32_t errorCode = (int32_t)U_ERROR_COMMON_SUCCESS;
     int32_t errnoLocal;
 
     errnoLocal = init();
@@ -1954,9 +1849,9 @@ int32_t uSockSetNextLocalPort(uDeviceHandle_t devHandle, int32_t port)
 
         errorCode = -U_SOCK_ENOSYS;
         int32_t devType = uDeviceGetDeviceType(devHandle);
-        if (devType == (int32_t) U_DEVICE_TYPE_CELL) {
+        if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
             errorCode = uCellSockSetNextLocalPort(devHandle, port);
-        } else if (devType == (int32_t) U_DEVICE_TYPE_SHORT_RANGE) {
+        } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
             errorCode = uWifiSockSetNextLocalPort(devHandle, port);
         }
 
@@ -1971,7 +1866,7 @@ int32_t uSockSetNextLocalPort(uDeviceHandle_t devHandle, int32_t port)
     if (errnoLocal != U_SOCK_ENONE) {
         // Write the errno
         errno = errnoLocal;
-        errorCode = (int32_t) U_ERROR_COMMON_BSD_ERROR;
+        errorCode = (int32_t)U_ERROR_COMMON_BSD_ERROR;
     }
 
     return errorCode;
@@ -1982,11 +1877,10 @@ int32_t uSockSetNextLocalPort(uDeviceHandle_t devHandle, int32_t port)
  * -------------------------------------------------------------- */
 
 // Send a datagram to the given host.
-int32_t uSockSendTo(uSockDescriptor_t descriptor,
-                    const uSockAddress_t *pRemoteAddress,
+int32_t uSockSendTo(uSockDescriptor_t descriptor, const uSockAddress_t *pRemoteAddress,
                     const void *pData, size_t dataSizeBytes)
 {
-    int32_t errorCodeOrSize = (int32_t) U_ERROR_COMMON_SUCCESS;
+    int32_t errorCodeOrSize = (int32_t)U_ERROR_COMMON_SUCCESS;
     int32_t errnoLocal;
     uSockContainer_t *pContainer = NULL;
     uDeviceHandle_t devHandle;
@@ -2046,21 +1940,15 @@ int32_t uSockSendTo(uSockDescriptor_t descriptor,
                             sockHandle = pContainer->socket.sockHandle;
                             errorCodeOrSize = -U_SOCK_ENOSYS;
                             int32_t devType = uDeviceGetDeviceType(devHandle);
-                            if (devType == (int32_t) U_DEVICE_TYPE_CELL) {
-                                errorCodeOrSize = uCellSockSendTo(devHandle,
-                                                                  sockHandle,
-                                                                  pRemoteAddress,
-                                                                  pData,
-                                                                  dataSizeBytes);
+                            if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
+                                errorCodeOrSize = uCellSockSendTo(
+                                    devHandle, sockHandle, pRemoteAddress, pData, dataSizeBytes);
                                 if (errorCodeOrSize > 0) {
                                     pContainer->socket.bytesSent += errorCodeOrSize;
                                 }
-                            } else if (devType == (int32_t) U_DEVICE_TYPE_SHORT_RANGE) {
-                                errorCodeOrSize = uWifiSockSendTo(devHandle,
-                                                                  sockHandle,
-                                                                  pRemoteAddress,
-                                                                  pData,
-                                                                  dataSizeBytes);
+                            } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
+                                errorCodeOrSize = uWifiSockSendTo(
+                                    devHandle, sockHandle, pRemoteAddress, pData, dataSizeBytes);
                                 if (errorCodeOrSize > 0) {
                                     pContainer->socket.bytesSent += errorCodeOrSize;
                                 }
@@ -2082,7 +1970,7 @@ int32_t uSockSendTo(uSockDescriptor_t descriptor,
     if (errnoLocal != U_SOCK_ENONE) {
         // Write the errno
         errno = errnoLocal;
-        errorCodeOrSize = (int32_t) U_ERROR_COMMON_BSD_ERROR;
+        errorCodeOrSize = (int32_t)U_ERROR_COMMON_BSD_ERROR;
     }
 
     return errorCodeOrSize;
@@ -2090,7 +1978,7 @@ int32_t uSockSendTo(uSockDescriptor_t descriptor,
 
 int32_t uSockGetTotalBytesSent(uSockDescriptor_t descriptor)
 {
-    int32_t errorCodeOrTotalBytesSent = (int32_t) U_ERROR_COMMON_INVALID_PARAMETER;
+    int32_t errorCodeOrTotalBytesSent = (int32_t)U_ERROR_COMMON_INVALID_PARAMETER;
     uSockContainer_t *pContainer;
 
     pContainer = pContainerFindByDescriptor(descriptor);
@@ -2103,11 +1991,10 @@ int32_t uSockGetTotalBytesSent(uSockDescriptor_t descriptor)
 }
 
 // Receive a single datagram from the given host.
-int32_t uSockReceiveFrom(uSockDescriptor_t descriptor,
-                         uSockAddress_t *pRemoteAddress,
-                         void *pData, size_t dataSizeBytes)
+int32_t uSockReceiveFrom(uSockDescriptor_t descriptor, uSockAddress_t *pRemoteAddress, void *pData,
+                         size_t dataSizeBytes)
 {
-    int32_t errorCodeOrSize = (int32_t) U_ERROR_COMMON_SUCCESS;
+    int32_t errorCodeOrSize = (int32_t)U_ERROR_COMMON_SUCCESS;
     int32_t errnoLocal;
     uSockContainer_t *pContainer = NULL;
 
@@ -2139,10 +2026,8 @@ int32_t uSockReceiveFrom(uSockDescriptor_t descriptor,
                             errnoLocal = U_SOCK_ENONE;
                             if ((pData != NULL) && (dataSizeBytes != 0)) {
                                 // Receive the datagram
-                                errorCodeOrSize = receive(pContainer,
-                                                          pRemoteAddress,
-                                                          pData,
-                                                          dataSizeBytes);
+                                errorCodeOrSize =
+                                    receive(pContainer, pRemoteAddress, pData, dataSizeBytes);
                                 if (errorCodeOrSize < 0) {
                                     // Set errno
                                     errnoLocal = -errorCodeOrSize;
@@ -2160,7 +2045,7 @@ int32_t uSockReceiveFrom(uSockDescriptor_t descriptor,
     if (errnoLocal != U_SOCK_ENONE) {
         // Write the errno
         errno = errnoLocal;
-        errorCodeOrSize = (int32_t) U_ERROR_COMMON_BSD_ERROR;
+        errorCodeOrSize = (int32_t)U_ERROR_COMMON_BSD_ERROR;
     }
 
     return errorCodeOrSize;
@@ -2171,10 +2056,9 @@ int32_t uSockReceiveFrom(uSockDescriptor_t descriptor,
  * -------------------------------------------------------------- */
 
 // Send data.
-int32_t uSockWrite(uSockDescriptor_t descriptor,
-                   const void *pData, size_t dataSizeBytes)
+int32_t uSockWrite(uSockDescriptor_t descriptor, const void *pData, size_t dataSizeBytes)
 {
-    int32_t errorCodeOrSize = (int32_t) U_ERROR_COMMON_SUCCESS;
+    int32_t errorCodeOrSize = (int32_t)U_ERROR_COMMON_SUCCESS;
     int32_t errnoLocal;
     uSockContainer_t *pContainer = NULL;
     uDeviceHandle_t devHandle;
@@ -2191,8 +2075,7 @@ int32_t uSockWrite(uSockDescriptor_t descriptor,
         if (pContainer != NULL) {
             if (pContainer->socket.state == U_SOCK_STATE_CONNECTED) {
                 errnoLocal = U_SOCK_EINVAL;
-                if (((pData == NULL) && (dataSizeBytes > 0)) ||
-                    (dataSizeBytes > INT_MAX)) {
+                if (((pData == NULL) && (dataSizeBytes > 0)) || (dataSizeBytes > INT_MAX)) {
                     // Invalid argument
                 } else {
                     errnoLocal = U_SOCK_ENONE;
@@ -2206,19 +2089,15 @@ int32_t uSockWrite(uSockDescriptor_t descriptor,
                         sockHandle = pContainer->socket.sockHandle;
                         errorCodeOrSize = -U_SOCK_ENOSYS;
                         int32_t devType = uDeviceGetDeviceType(devHandle);
-                        if (devType == (int32_t) U_DEVICE_TYPE_CELL) {
-                            errorCodeOrSize = uCellSockWrite(devHandle,
-                                                             sockHandle,
-                                                             pData,
-                                                             dataSizeBytes);
+                        if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
+                            errorCodeOrSize =
+                                uCellSockWrite(devHandle, sockHandle, pData, dataSizeBytes);
                             if (errorCodeOrSize > 0) {
                                 pContainer->socket.bytesSent += errorCodeOrSize;
                             }
-                        } else if (devType == (int32_t) U_DEVICE_TYPE_SHORT_RANGE) {
-                            errorCodeOrSize = uWifiSockWrite(devHandle,
-                                                             sockHandle,
-                                                             pData,
-                                                             dataSizeBytes);
+                        } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
+                            errorCodeOrSize =
+                                uWifiSockWrite(devHandle, sockHandle, pData, dataSizeBytes);
                             if (errorCodeOrSize > 0) {
                                 pContainer->socket.bytesSent += errorCodeOrSize;
                             }
@@ -2251,17 +2130,16 @@ int32_t uSockWrite(uSockDescriptor_t descriptor,
     if (errnoLocal != U_SOCK_ENONE) {
         // Write the errno
         errno = errnoLocal;
-        errorCodeOrSize = (int32_t) U_ERROR_COMMON_BSD_ERROR;
+        errorCodeOrSize = (int32_t)U_ERROR_COMMON_BSD_ERROR;
     }
 
     return errorCodeOrSize;
 }
 
 // Receive data.
-int32_t uSockRead(uSockDescriptor_t descriptor,
-                  void *pData, size_t dataSizeBytes)
+int32_t uSockRead(uSockDescriptor_t descriptor, void *pData, size_t dataSizeBytes)
 {
-    int32_t errorCodeOrSize = (int32_t) U_ERROR_COMMON_SUCCESS;
+    int32_t errorCodeOrSize = (int32_t)U_ERROR_COMMON_SUCCESS;
     int32_t errnoLocal;
     uSockContainer_t *pContainer = NULL;
 
@@ -2276,16 +2154,13 @@ int32_t uSockRead(uSockDescriptor_t descriptor,
         if (pContainer != NULL) {
             if (pContainer->socket.state == U_SOCK_STATE_CONNECTED) {
                 errnoLocal = U_SOCK_EINVAL;
-                if (((pData == NULL) && (dataSizeBytes > 0)) ||
-                    (dataSizeBytes > INT_MAX)) {
+                if (((pData == NULL) && (dataSizeBytes > 0)) || (dataSizeBytes > INT_MAX)) {
                     // Invalid argument
                 } else {
                     errnoLocal = U_SOCK_ENONE;
                     if ((pData != NULL) && (dataSizeBytes != 0)) {
                         // Receive the datagram
-                        errorCodeOrSize = receive(pContainer,
-                                                  NULL, pData,
-                                                  dataSizeBytes);
+                        errorCodeOrSize = receive(pContainer, NULL, pData, dataSizeBytes);
                         if (errorCodeOrSize < 0) {
                             // Set errno
                             errnoLocal = -errorCodeOrSize;
@@ -2313,7 +2188,7 @@ int32_t uSockRead(uSockDescriptor_t descriptor,
     if (errnoLocal != U_SOCK_ENONE) {
         // Write the errno
         errno = errnoLocal;
-        errorCodeOrSize = (int32_t) U_ERROR_COMMON_BSD_ERROR;
+        errorCodeOrSize = (int32_t)U_ERROR_COMMON_BSD_ERROR;
     }
 
     return errorCodeOrSize;
@@ -2322,10 +2197,9 @@ int32_t uSockRead(uSockDescriptor_t descriptor,
 // Prepare a TCP socket for being closed.
 // Note: this does not need to reference the underlying
 // cell/wifi socket layer.
-int32_t uSockShutdown(uSockDescriptor_t descriptor,
-                      uSockShutdown_t how)
+int32_t uSockShutdown(uSockDescriptor_t descriptor, uSockShutdown_t how)
 {
-    int32_t errorCode = (int32_t) U_ERROR_COMMON_SUCCESS;
+    int32_t errorCode = (int32_t)U_ERROR_COMMON_SUCCESS;
     int32_t errnoLocal;
     uSockContainer_t *pContainer = NULL;
 
@@ -2340,21 +2214,21 @@ int32_t uSockShutdown(uSockDescriptor_t descriptor,
         if (pContainer != NULL) {
             // Set the socket state
             switch (how) {
-                case U_SOCK_SHUTDOWN_READ:
-                    pContainer->socket.state = U_SOCK_STATE_SHUTDOWN_FOR_READ;
-                    errnoLocal = U_SOCK_ENONE;
-                    break;
-                case U_SOCK_SHUTDOWN_WRITE:
-                    pContainer->socket.state = U_SOCK_STATE_SHUTDOWN_FOR_WRITE;
-                    errnoLocal = U_SOCK_ENONE;
-                    break;
-                case U_SOCK_SHUTDOWN_READ_WRITE:
-                    pContainer->socket.state = U_SOCK_STATE_SHUTDOWN_FOR_READ_WRITE;
-                    errnoLocal = U_SOCK_ENONE;
-                    break;
-                default:
-                    errnoLocal = U_SOCK_EINVAL;
-                    break;
+            case U_SOCK_SHUTDOWN_READ:
+                pContainer->socket.state = U_SOCK_STATE_SHUTDOWN_FOR_READ;
+                errnoLocal = U_SOCK_ENONE;
+                break;
+            case U_SOCK_SHUTDOWN_WRITE:
+                pContainer->socket.state = U_SOCK_STATE_SHUTDOWN_FOR_WRITE;
+                errnoLocal = U_SOCK_ENONE;
+                break;
+            case U_SOCK_SHUTDOWN_READ_WRITE:
+                pContainer->socket.state = U_SOCK_STATE_SHUTDOWN_FOR_READ_WRITE;
+                errnoLocal = U_SOCK_ENONE;
+                break;
+            default:
+                errnoLocal = U_SOCK_EINVAL;
+                break;
             }
         }
 
@@ -2364,7 +2238,7 @@ int32_t uSockShutdown(uSockDescriptor_t descriptor,
     if (errnoLocal != U_SOCK_ENONE) {
         // Write the errno
         errno = errnoLocal;
-        errorCode = (int32_t) U_ERROR_COMMON_BSD_ERROR;
+        errorCode = (int32_t)U_ERROR_COMMON_BSD_ERROR;
     }
 
     return errorCode;
@@ -2375,8 +2249,7 @@ int32_t uSockShutdown(uSockDescriptor_t descriptor,
  * -------------------------------------------------------------- */
 
 // Register a callback for incoming data.
-void uSockRegisterCallbackData(uSockDescriptor_t descriptor,
-                               void (*pCallback) (void *),
+void uSockRegisterCallbackData(uSockDescriptor_t descriptor, void (*pCallback)(void *),
                                void *pCallbackParameter)
 {
     int32_t errnoLocal;
@@ -2401,15 +2274,11 @@ void uSockRegisterCallbackData(uSockDescriptor_t descriptor,
             sockHandle = pContainer->socket.sockHandle;
             errnoLocal = U_SOCK_ENOSYS;
             int32_t devType = uDeviceGetDeviceType(devHandle);
-            if (devType == (int32_t) U_DEVICE_TYPE_CELL) {
-                uCellSockRegisterCallbackData(devHandle,
-                                              sockHandle,
-                                              dataCallback);
+            if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
+                uCellSockRegisterCallbackData(devHandle, sockHandle, dataCallback);
                 errnoLocal = U_SOCK_ENONE;
-            } else if (devType == (int32_t) U_DEVICE_TYPE_SHORT_RANGE) {
-                errnoLocal = -uWifiSockRegisterCallbackData(devHandle,
-                                                            sockHandle,
-                                                            dataCallback);
+            } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
+                errnoLocal = -uWifiSockRegisterCallbackData(devHandle, sockHandle, dataCallback);
             }
 
             if (errnoLocal == U_SOCK_ENONE) {
@@ -2430,8 +2299,7 @@ void uSockRegisterCallbackData(uSockDescriptor_t descriptor,
 }
 
 // Register a callback for remote socket closure.
-void uSockRegisterCallbackClosed(uSockDescriptor_t descriptor,
-                                 void (*pCallback) (void *),
+void uSockRegisterCallbackClosed(uSockDescriptor_t descriptor, void (*pCallback)(void *),
                                  void *pCallbackParameter)
 {
     int32_t errnoLocal;
@@ -2457,15 +2325,12 @@ void uSockRegisterCallbackClosed(uSockDescriptor_t descriptor,
             sockHandle = pContainer->socket.sockHandle;
             errnoLocal = U_SOCK_ENOSYS;
             int32_t devType = uDeviceGetDeviceType(devHandle);
-            if (devType == (int32_t) U_DEVICE_TYPE_CELL) {
-                uCellSockRegisterCallbackClosed(devHandle,
-                                                sockHandle,
-                                                closedCallback);
+            if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
+                uCellSockRegisterCallbackClosed(devHandle, sockHandle, closedCallback);
                 errnoLocal = U_SOCK_ENONE;
-            } else if (devType == (int32_t) U_DEVICE_TYPE_SHORT_RANGE) {
-                errnoLocal = -uWifiSockRegisterCallbackClosed(devHandle,
-                                                              sockHandle,
-                                                              closedCallback);
+            } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
+                errnoLocal =
+                    -uWifiSockRegisterCallbackClosed(devHandle, sockHandle, closedCallback);
             }
 
             if (errnoLocal == U_SOCK_ENONE) {
@@ -2491,8 +2356,7 @@ void uSockRegisterCallbackClosed(uSockDescriptor_t descriptor,
 
 // Prepare a socket for receiving incoming TCP connections by
 // binding it to an address.
-int32_t uSockBind(uSockDescriptor_t descriptor,
-                  const uSockAddress_t *pLocalAddress)
+int32_t uSockBind(uSockDescriptor_t descriptor, const uSockAddress_t *pLocalAddress)
 {
     int32_t errorCode = (int32_t)U_ERROR_COMMON_NOT_IMPLEMENTED;
     int32_t errnoLocal;
@@ -2515,13 +2379,9 @@ int32_t uSockBind(uSockDescriptor_t descriptor,
                 errnoLocal = U_SOCK_ENOSYS;
                 int32_t devType = uDeviceGetDeviceType(devHandle);
                 if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
-                    errnoLocal = -uCellSockBind(devHandle,
-                                                sockHandle,
-                                                pLocalAddress);
+                    errnoLocal = -uCellSockBind(devHandle, sockHandle, pLocalAddress);
                 } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
-                    errnoLocal = -uWifiSockBind(devHandle,
-                                                sockHandle,
-                                                pLocalAddress);
+                    errnoLocal = -uWifiSockBind(devHandle, sockHandle, pLocalAddress);
                 }
             }
 
@@ -2558,13 +2418,9 @@ int32_t uSockListen(uSockDescriptor_t descriptor, size_t backlog)
             errnoLocal = U_SOCK_ENOSYS;
             int32_t devType = uDeviceGetDeviceType(devHandle);
             if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
-                errnoLocal = -uCellSockListen(devHandle,
-                                              sockHandle,
-                                              backlog);
+                errnoLocal = -uCellSockListen(devHandle, sockHandle, backlog);
             } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
-                errnoLocal = -uWifiSockListen(devHandle,
-                                              sockHandle,
-                                              backlog);
+                errnoLocal = -uWifiSockListen(devHandle, sockHandle, backlog);
             }
         }
         U_PORT_MUTEX_UNLOCK(gMutexContainer);
@@ -2580,11 +2436,10 @@ int32_t uSockListen(uSockDescriptor_t descriptor, size_t backlog)
 }
 
 // Accept an incoming TCP connection on the given socket.
-int32_t uSockAccept(uSockDescriptor_t descriptor,
-                    uSockAddress_t *pRemoteAddress)
+int32_t uSockAccept(uSockDescriptor_t descriptor, uSockAddress_t *pRemoteAddress)
 {
-    (void) descriptor;
-    (void) pRemoteAddress;
+    (void)descriptor;
+    (void)pRemoteAddress;
     errno = U_SOCK_ENOSYS;
     uSockContainer_t *pContainer = NULL;
     uDeviceHandle_t devHandle;
@@ -2604,19 +2459,13 @@ int32_t uSockAccept(uSockDescriptor_t descriptor,
                 sockHandle = pContainer->socket.sockHandle;
                 int32_t devType = uDeviceGetDeviceType(devHandle);
                 if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
-                    clientSockHandle = uCellSockAccept(devHandle,
-                                                       sockHandle,
-                                                       pRemoteAddress);
+                    clientSockHandle = uCellSockAccept(devHandle, sockHandle, pRemoteAddress);
                 } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
-                    clientSockHandle = uWifiSockAccept(devHandle,
-                                                       sockHandle,
-                                                       pRemoteAddress);
+                    clientSockHandle = uWifiSockAccept(devHandle, sockHandle, pRemoteAddress);
                 }
                 if (clientSockHandle >= 0) {
-                    clientSock = uSockCreateEx(devHandle,
-                                               pContainer->socket.type,
-                                               pContainer->socket.protocol,
-                                               clientSockHandle);
+                    clientSock = uSockCreateEx(devHandle, pContainer->socket.type,
+                                               pContainer->socket.protocol, clientSockHandle);
                 } else {
                     clientSock = clientSockHandle;
                 }
@@ -2636,20 +2485,18 @@ int32_t uSockAccept(uSockDescriptor_t descriptor,
 }
 
 // Select: wait for one of a set of sockets to become unblocked.
-int32_t uSockSelect(int32_t maxDescriptor,
-                    uSockDescriptorSet_t *pReadDescriptorSet,
+int32_t uSockSelect(int32_t maxDescriptor, uSockDescriptorSet_t *pReadDescriptorSet,
                     uSockDescriptorSet_t *pWriteDescriptoreSet,
-                    uSockDescriptorSet_t *pExceptDescriptorSet,
-                    int32_t timeMs)
+                    uSockDescriptorSet_t *pExceptDescriptorSet, int32_t timeMs)
 {
     // TODO: implement or remove useless loop via uSockSelect()
-    (void) maxDescriptor;
-    (void) pReadDescriptorSet;
-    (void) pWriteDescriptoreSet;
-    (void) pExceptDescriptorSet;
-    (void) timeMs;
-    //errno = U_SOCK_ENOSYS;
-    //return (int32_t) U_ERROR_COMMON_NOT_IMPLEMENTED;
+    (void)maxDescriptor;
+    (void)pReadDescriptorSet;
+    (void)pWriteDescriptoreSet;
+    (void)pExceptDescriptorSet;
+    (void)timeMs;
+    // errno = U_SOCK_ENOSYS;
+    // return (int32_t) U_ERROR_COMMON_NOT_IMPLEMENTED;
     return 1;
 }
 
@@ -2660,10 +2507,9 @@ int32_t uSockSelect(int32_t maxDescriptor,
 // Get the address of the remote host connected to a given socket.
 // Note: this does not need to reference the underlying
 // cell/wifi socket layer.
-int32_t uSockGetRemoteAddress(uSockDescriptor_t descriptor,
-                              uSockAddress_t *pRemoteAddress)
+int32_t uSockGetRemoteAddress(uSockDescriptor_t descriptor, uSockAddress_t *pRemoteAddress)
 {
-    int32_t errorCode = (int32_t) U_ERROR_COMMON_SUCCESS;
+    int32_t errorCode = (int32_t)U_ERROR_COMMON_SUCCESS;
     int32_t errnoLocal;
     uSockContainer_t *pContainer = NULL;
 
@@ -2681,8 +2527,7 @@ int32_t uSockGetRemoteAddress(uSockDescriptor_t descriptor,
             if (pContainer != NULL) {
                 errnoLocal = U_SOCK_EHOSTUNREACH;
                 if (pContainer->socket.state == U_SOCK_STATE_CONNECTED) {
-                    memcpy(pRemoteAddress,
-                           &(pContainer->socket.remoteAddress),
+                    memcpy(pRemoteAddress, &(pContainer->socket.remoteAddress),
                            sizeof(*pRemoteAddress));
                     errnoLocal = U_SOCK_ENONE;
                 }
@@ -2695,17 +2540,16 @@ int32_t uSockGetRemoteAddress(uSockDescriptor_t descriptor,
     if (errnoLocal != U_SOCK_ENONE) {
         // Write the errno
         errno = errnoLocal;
-        errorCode = (int32_t) U_ERROR_COMMON_BSD_ERROR;
+        errorCode = (int32_t)U_ERROR_COMMON_BSD_ERROR;
     }
 
     return errorCode;
 }
 
 // Get the local address of the given socket.
-int32_t uSockGetLocalAddress(uSockDescriptor_t descriptor,
-                             uSockAddress_t *pLocalAddress)
+int32_t uSockGetLocalAddress(uSockDescriptor_t descriptor, uSockAddress_t *pLocalAddress)
 {
-    int32_t errorCode = (int32_t) U_ERROR_COMMON_SUCCESS;
+    int32_t errorCode = (int32_t)U_ERROR_COMMON_SUCCESS;
     int32_t errnoLocal;
     uSockContainer_t *pContainer = NULL;
     uDeviceHandle_t devHandle;
@@ -2731,14 +2575,10 @@ int32_t uSockGetLocalAddress(uSockDescriptor_t descriptor,
                 sockHandle = pContainer->socket.sockHandle;
                 errnoLocal = U_SOCK_ENOSYS;
                 int32_t devType = uDeviceGetDeviceType(devHandle);
-                if (devType == (int32_t) U_DEVICE_TYPE_CELL) {
-                    errnoLocal = -uCellSockGetLocalAddress(devHandle,
-                                                           sockHandle,
-                                                           pLocalAddress);
-                } else if (devType == (int32_t) U_DEVICE_TYPE_SHORT_RANGE) {
-                    errnoLocal = -uWifiSockGetLocalAddress(devHandle,
-                                                           sockHandle,
-                                                           pLocalAddress);
+                if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
+                    errnoLocal = -uCellSockGetLocalAddress(devHandle, sockHandle, pLocalAddress);
+                } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
+                    errnoLocal = -uWifiSockGetLocalAddress(devHandle, sockHandle, pLocalAddress);
                 }
             }
 
@@ -2749,18 +2589,17 @@ int32_t uSockGetLocalAddress(uSockDescriptor_t descriptor,
     if (errnoLocal != U_SOCK_ENONE) {
         // Write the errno
         errno = errnoLocal;
-        errorCode = (int32_t) U_ERROR_COMMON_BSD_ERROR;
+        errorCode = (int32_t)U_ERROR_COMMON_BSD_ERROR;
     }
 
     return errorCode;
 }
 
 // Get the IP address of the given host name.
-int32_t uSockGetHostByName(uDeviceHandle_t devHandle,
-                           const char *pHostName,
+int32_t uSockGetHostByName(uDeviceHandle_t devHandle, const char *pHostName,
                            uSockIpAddress_t *pHostIpAddress)
 {
-    int32_t errorCode = (int32_t) U_ERROR_COMMON_SUCCESS;
+    int32_t errorCode = (int32_t)U_ERROR_COMMON_SUCCESS;
     int32_t errnoLocal;
 
     errnoLocal = init();
@@ -2778,14 +2617,10 @@ int32_t uSockGetHostByName(uDeviceHandle_t devHandle,
             // uXxxSockGetHostByName() returns a negated
             // value from the U_SOCK_Exxx list.
             errnoLocal = U_SOCK_ENOSYS;
-            if (devType == (int32_t) U_DEVICE_TYPE_CELL) {
-                errnoLocal = -uCellSockGetHostByName(devHandle,
-                                                     pHostName,
-                                                     pHostIpAddress);
-            } else if (devType == (int32_t) U_DEVICE_TYPE_SHORT_RANGE) {
-                errnoLocal = -uWifiSockGetHostByName(devHandle,
-                                                     pHostName,
-                                                     pHostIpAddress);
+            if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
+                errnoLocal = -uCellSockGetHostByName(devHandle, pHostName, pHostIpAddress);
+            } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
+                errnoLocal = -uWifiSockGetHostByName(devHandle, pHostName, pHostIpAddress);
             }
 
             U_PORT_MUTEX_UNLOCK(gMutexContainer);
@@ -2795,7 +2630,7 @@ int32_t uSockGetHostByName(uDeviceHandle_t devHandle,
     if (errnoLocal != U_SOCK_ENONE) {
         // Write the errno
         errno = errnoLocal;
-        errorCode = (int32_t) U_ERROR_COMMON_BSD_ERROR;
+        errorCode = (int32_t)U_ERROR_COMMON_BSD_ERROR;
     }
 
     return errorCode;
@@ -2808,21 +2643,20 @@ int32_t uSockGetHostByName(uDeviceHandle_t devHandle,
 // Convert an IP address string into a struct.
 // Note: this does not need to reference the underlying
 // cell/wifi socket layer.
-int32_t uSockStringToAddress(const char *pAddressString,
-                             uSockAddress_t *pAddress)
+int32_t uSockStringToAddress(const char *pAddressString, uSockAddress_t *pAddress)
 {
-    int32_t errorCode = (int32_t) U_ERROR_COMMON_INVALID_PARAMETER;
+    int32_t errorCode = (int32_t)U_ERROR_COMMON_INVALID_PARAMETER;
 
     // No need to call init(); here, this does not use the mutexes
     if ((pAddressString != NULL) && (pAddress != NULL)) {
-        errorCode = (int32_t) U_ERROR_COMMON_INVALID_ADDRESS;
+        errorCode = (int32_t)U_ERROR_COMMON_INVALID_ADDRESS;
         if (addressStringIsIpv4(pAddressString)) {
             if (ipv4StringToAddress(pAddressString, pAddress)) {
-                errorCode = (int32_t) U_ERROR_COMMON_SUCCESS;
+                errorCode = (int32_t)U_ERROR_COMMON_SUCCESS;
             }
         } else {
             if (ipv6StringToAddress(pAddressString, pAddress)) {
-                errorCode = (int32_t) U_ERROR_COMMON_SUCCESS;
+                errorCode = (int32_t)U_ERROR_COMMON_SUCCESS;
             }
         }
     }
@@ -2833,16 +2667,13 @@ int32_t uSockStringToAddress(const char *pAddressString,
 // Convert an IP address struct into a string.
 // Note: this does not need to reference the underlying
 // cell/wifi socket layer.
-int32_t uSockIpAddressToString(const uSockIpAddress_t *pIpAddress,
-                               char *pBuffer,
-                               size_t sizeBytes)
+int32_t uSockIpAddressToString(const uSockIpAddress_t *pIpAddress, char *pBuffer, size_t sizeBytes)
 {
-    int32_t stringLengthOrError = (int32_t) U_ERROR_COMMON_INVALID_PARAMETER;
+    int32_t stringLengthOrError = (int32_t)U_ERROR_COMMON_INVALID_PARAMETER;
 
     // No need to call init(); here, this does not use the mutexes
     if ((pIpAddress != NULL) && (pBuffer != NULL)) {
-        stringLengthOrError = ipAddressToString(pIpAddress, pBuffer,
-                                                sizeBytes);
+        stringLengthOrError = ipAddressToString(pIpAddress, pBuffer, sizeBytes);
     }
 
     return stringLengthOrError;
@@ -2851,16 +2682,13 @@ int32_t uSockIpAddressToString(const uSockIpAddress_t *pIpAddress,
 // Convert an address struct into a string.
 // Note: this does not need to reference the underlying
 // cell/wifi socket layer.
-int32_t uSockAddressToString(const uSockAddress_t *pAddress,
-                             char *pBuffer,
-                             size_t sizeBytes)
+int32_t uSockAddressToString(const uSockAddress_t *pAddress, char *pBuffer, size_t sizeBytes)
 {
-    int32_t stringLengthOrError = (int32_t) U_ERROR_COMMON_INVALID_PARAMETER;
+    int32_t stringLengthOrError = (int32_t)U_ERROR_COMMON_INVALID_PARAMETER;
 
     // No need to call init(); here, this does not use the mutexes
     if ((pAddress != NULL) && (pBuffer != NULL)) {
-        stringLengthOrError = addressToString(pAddress, true,
-                                              pBuffer, sizeBytes);
+        stringLengthOrError = addressToString(pAddress, true, pBuffer, sizeBytes);
     }
 
     return stringLengthOrError;
@@ -2878,7 +2706,7 @@ int32_t uSockDomainGetPort(char *pDomainString)
     pColon = pAddressPortSeparator(pDomainString);
     if (pColon != NULL) {
         x = strtol(pColon + 1, NULL, 10);
-        if (x <= (int32_t) USHRT_MAX) {
+        if (x <= (int32_t)USHRT_MAX) {
             port = x;
         }
     }
