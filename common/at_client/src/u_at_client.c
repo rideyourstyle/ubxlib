@@ -3374,6 +3374,9 @@ int32_t uAtClientUnlock(uAtClientHandle_t atHandle)
                 break;
         }
 
+        if ( U_AT_CLIENT_GUARD_CHECK(pClient->pReceiveBuffer) == false ) {
+            uPortLog("BLUBB");
+        }
         U_ASSERT(U_AT_CLIENT_GUARD_CHECK(pClient->pReceiveBuffer));
     }
 

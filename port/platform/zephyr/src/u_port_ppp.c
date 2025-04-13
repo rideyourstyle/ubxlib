@@ -132,7 +132,7 @@
  * high (e.g. U_CFG_OS_PRIORITY_MAX - 5, which is the same as
  * the AT Client URC task).
  */
-# define U_PORT_PPP_TX_TASK_PRIORITY (U_CFG_OS_PRIORITY_MAX - 5)
+# define U_PORT_PPP_TX_TASK_PRIORITY 2
 #endif
 
 #ifndef U_PORT_PPP_TX_BUFFER_COUNT

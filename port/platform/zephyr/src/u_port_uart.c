@@ -244,6 +244,7 @@ static const struct device *pGetDevice(int32_t uart)
             break;
     }
 
+    pDevice = U_DEVICE_DT_GET_OR_NULL(uart0);
     return pDevice;
 }
 
