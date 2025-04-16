@@ -555,8 +555,7 @@ static void cleanUp(bool forced)
 
         // Move through the list removing closed sockets
         while (pContainer != NULL) {
-            if (forced ||
-                (pContainer->socket.state == U_SOCK_STATE_CLOSED) ||
+            if (forced || (pContainer->socket.state == U_SOCK_STATE_CLOSED) ||
                 (pContainer->socket.state == U_SOCK_STATE_CLOSING)) {
                 devHandle = NULL;
                 if (!(pContainer->isStatic)) {
@@ -602,9 +601,9 @@ static void cleanUp(bool forced)
                     int32_t devType = uDeviceGetDeviceType(devHandle);
                     // Call the clean-up function in the underlying
                     // socket layer, where present
-                    if (devType == (int32_t) U_DEVICE_TYPE_CELL) {
+                    if (devType == (int32_t)U_DEVICE_TYPE_CELL) {
                         uCellSockCleanup(devHandle);
-                    } else if (devType == (int32_t) U_DEVICE_TYPE_SHORT_RANGE) {
+                    } else if (devType == (int32_t)U_DEVICE_TYPE_SHORT_RANGE) {
                         uWifiSockCleanup(devHandle);
                     }
                 }
@@ -1283,10 +1282,8 @@ static int32_t receive(const uSockContainer_t *pContainer, uSockAddress_t *pRemo
             // Yield for the poll interval
             uPortTaskBlock(U_SOCK_RECEIVE_POLL_INTERVAL_MS);
         }
-    } while ((negErrnoOrSize < 0) &&
-             (pContainer->socket.blocking) &&
-             !uTimeoutExpiredMs(timeoutStart,
-                                pContainer->socket.receiveTimeoutMs));
+    } while ((negErrnoOrSize < 0) && (pContainer->socket.blocking) &&
+             !uTimeoutExpiredMs(timeoutStart, pContainer->socket.receiveTimeoutMs));
 
     return negErrnoOrSize;
 }
@@ -1471,16 +1468,10 @@ int32_t uSockClose(uSockDescriptor_t descriptor)
 }
 
 // Free memory from any sockets that are no longer in use.
-void uSockCleanUp()
-{
-    cleanUp(false);
-}
+void uSockCleanUp() { cleanUp(false); }
 
 // Free memory from any sockets.
-void uSockForgetAll()
-{
-    cleanUp(true);
-}
+void uSockForgetAll() { cleanUp(true); }
 
 // Close all sockets and free resource.
 void uSockDeinit()
@@ -1647,9 +1638,10 @@ int32_t uSockOptionSet(uSockDescriptor_t descriptor, int32_t level, uint32_t opt
                         pContainer->socket.receiveTimeoutMs =
                             (((const struct timeval *)pOptionValue)->tv_usec / 1000) +
                             (((int64_t)((const struct timeval *)pOptionValue)->tv_sec) * 1000);
-                        LOG_INF("Timeout for socket descriptor %d set to %ll ms", descriptor, pContainer->socket.receiveTimeoutMs);
+                        LOG_INF("Timeout for socket descriptor %d set to %lld ms", descriptor,
+                                pContainer->socket.receiveTimeoutMs);
                     } else {
-                        LOG_ERR("socket option %d:0x%04x could not be set to value ", option,
+                        LOG_ERR("Socket option %d:0x%04x could not be set to value ", option,
                                 level);
                         printSocketOption(pOptionValue, optionValueLength);
                     }
@@ -1732,7 +1724,8 @@ int32_t uSockOptionGet(uSockDescriptor_t descriptor, int32_t level, uint32_t opt
                                 ((struct timeval *)pOptionValue)->tv_usec =
                                     (pContainer->socket.receiveTimeoutMs % 1000) * 1000;
                                 *pOptionValueLength = sizeof(struct timeval);
-                                LOG_WRN("Timeout for socket descriptor %d is %l ms", descriptor, pContainer->socket.receiveTimeoutMs);
+                                LOG_WRN("Timeout for socket descriptor %d is %lld", descriptor,
+                                        pContainer->socket.receiveTimeoutMs);
                             }
                         } else {
                             errnoLocal = U_SOCK_ENONE;
