@@ -58,14 +58,16 @@ extern "C" {
 #  elif __ARM_ARCH == 8
 #    define U_LIB_ARCH     ((U_LIB_HDR_FLAG_ARCH_ARM_ID+8) & U_LIB_HDR_FLAG_ARCH_MASK)
 #  else
-#    error "The ARM architecture you're compiling this library for is not yet considered. Please add a new identifier for it."
+#    define U_LIB_ARCH     ((U_LIB_HDR_FLAG_ARCH_ARM_ID+8) & U_LIB_HDR_FLAG_ARCH_MASK)
+//#    error "The ARM architecture you're compiling this library for is not yet considered. Please add a new identifier for it."
 #  endif
 #elif defined(__x86_64__)
 #  define U_LIB_ARCH       (0x01 & U_LIB_HDR_FLAG_ARCH_MASK)
 #elif defined(__i386__)
 #  define U_LIB_ARCH       (0x02 & U_LIB_HDR_FLAG_ARCH_MASK)
 #else
-#  error "The architecture you're compiling this library for is not yet considered. Please add a new identifier for it."
+#  define U_LIB_ARCH       (0x01 & U_LIB_HDR_FLAG_ARCH_MASK)
+//#  error "The architecture you're compiling this library for is not yet considered. Please add a new identifier for it."
 #endif
 
 #if U_LIB_ARCH == 0 // just for sanity

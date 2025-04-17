@@ -24,4 +24,4 @@ target_include_directories(app PRIVATE
 # with the usual workaround when C++ is switch on, which
 # it is on Linux, and force to 32-bit, 'cos that's what
 # Zephyr does
-target_compile_options(app PRIVATE -Wno-format-truncation -m32)
+target_compile_options(app PRIVATE -Wno-format-truncation)

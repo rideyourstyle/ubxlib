@@ -40,7 +40,7 @@ message("UBXLIB_FEATURES will be \"${UBXLIB_FEATURES}\"")
 if (CONFIG_ARCH_POSIX)
   # When compiling for Zephyr on Linux, need to force
   # compilation of 32-bit objects when we call ubxlib.cmake
-  set(UBXLIB_COMPILE_OPTIONS "-m32")
+  #set(UBXLIB_COMPILE_OPTIONS "-m32")
 endif()
 
 # From this line we will get back:
