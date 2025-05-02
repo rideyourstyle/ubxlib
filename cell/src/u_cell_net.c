@@ -286,7 +286,7 @@ static void activateContextCallback(uAtClientHandle_t atHandle, void *pParameter
 
     (void)atHandle;
 
-    LOG_INF("U_CELL_NET: Activating context\n");
+    LOG_INF("Activating context");
 
     activateContext(pInstance, U_CELL_NET_CONTEXT_ID, U_CELL_NET_PROFILE_ID);
     if (pInstance->pModule->pppContextId >= 0) {
@@ -1299,7 +1299,7 @@ static int32_t registerNetwork(uCellPrivateInstance_t *pInstance, const char *pM
         // registration has been done so set the
         // timeout to a second so that we can spin
         // around a loop
-        LOG_INF("U_CELL_NET: registering on %s...\n", pMccMnc);
+        LOG_INF("registering on %s...", pMccMnc);
         uAtClientLock(atHandle);
         uAtClientTimeoutSet(atHandle, 1000);
         uAtClientCommandStart(atHandle, "AT+COPS=");
@@ -2387,9 +2387,9 @@ static int32_t disconnect(uCellPrivateInstance_t *pInstance,
         uAtClientRemoveUrcHandler(atHandle, "+CEREG:");
         uAtClientRemoveUrcHandler(atHandle, "+UUPSDD:");
         uAtClientRemoveUrcHandler(atHandle, "+CGEV:");
-        LOG_INF("U_CELL_NET: disconnected.\n");
+        LOG_INF("disconnected");
     } else {
-        LOG_WRN("U_CELL_NET: unable to disconnect.\n");
+        LOG_WRN("unable to disconnect");
     }
     // Populate, or reset, the last EMM cause
     pInstance->lastEmmRejectCause = getEmmRejectCause(pInstance);
@@ -2605,13 +2605,12 @@ static int32_t connect(uCellPrivateInstance_t *pInstance, bool *pHasPpp,
                         }
                         pInstance->profileState = U_CELL_PRIVATE_PROFILE_STATE_SHOULD_BE_UP;
                         pInstance->connectedAt = uTimeoutStart();
-                        LOG_INF("U_CELL_NET: connected after %u second(s).\n",
+                        LOG_INF("onnected after %u second(s)",
                                 uTimeoutElapsedSeconds(pInstance->timeoutStart));
                     } else {
                         // Switch radio off after failure
                         radioOff(pInstance);
-                        LOG_ERR("U_CELL_NET: connection attempt stopped after"
-                                " %u second(s).\n",
+                        LOG_ERR("Connection attempt stopped after %u second(s)",
                                 uTimeoutElapsedSeconds(pInstance->timeoutStart));
                     }
                 }
@@ -2794,13 +2793,12 @@ int32_t uCellNetRegister(uDeviceHandle_t cellHandle, const char *pMccMnc,
                     if (pMccMnc != NULL) {
                         memcpy(pInstance->mccMnc, pMccMnc, sizeof(pInstance->mccMnc));
                     }
-                    LOG_INF("U_CELL_NET: registered after %u second(s).\n",
+                    LOG_INF("Registered after %u second(s)",
                             uTimeoutElapsedSeconds(pInstance->timeoutStart));
                 } else {
                     // Switch radio off after failure
                     radioOff(pInstance);
-                    LOG_ERR("U_CELL_NET: registration attempt stopped after"
-                            " %u second(s).\n",
+                    LOG_ERR("Registration attempt stopped after %u second(s)",
                             uTimeoutElapsedSeconds(pInstance->timeoutStart));
                 }
 
