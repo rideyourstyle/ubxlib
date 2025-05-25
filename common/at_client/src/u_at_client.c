@@ -1121,7 +1121,7 @@ static void printAt(uAtClientInstance_t *pClient, const char *pAt, size_t length
 #endif
 
     if (pClient->printAtOn) {
-        //LOG_ERR("*tAt: %.*s, length: %d, sending: %d", length, pAt, length, sending);
+        // LOG_ERR("*tAt: %.*s, length: %d, sending: %d", length, pAt, length, sending);
         prefixBuffer[0] = 0;
         char logBuffer[128] = {0};
         uint8_t logBufferIndex = 0;
@@ -1664,7 +1664,9 @@ static bool bufferFill(uAtClientInstance_t *pClient, bool blocking)
         pReceiveBuffer->length += readLength;
         LOG_BUFFER_FILL(16);
     }
-
+    if (U_AT_CLIENT_GUARD_CHECK(pReceiveBuffer) == false) {
+        LOG_ERR("");
+    }
     U_ASSERT(U_AT_CLIENT_GUARD_CHECK(pReceiveBuffer));
 
     return readLength > 0;

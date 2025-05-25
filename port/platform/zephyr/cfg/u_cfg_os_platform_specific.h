@@ -118,7 +118,7 @@
 /** The amount of stack to allocate to the task context within which
  * the timer callback runs.
  */
-# define U_CFG_OS_TIMER_EVENT_TASK_STACK_SIZE_BYTES (1024 * 2)
+# define U_CFG_OS_TIMER_EVENT_TASK_STACK_SIZE_BYTES (1024 * 1)
 #endif
 
 #ifndef U_CFG_OS_TIMER_EVENT_TASK_PRIORITY
