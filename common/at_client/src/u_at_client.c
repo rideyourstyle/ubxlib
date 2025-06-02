@@ -266,10 +266,13 @@ LOG_MODULE_REGISTER(at_client);
  */
 #define U_AT_CLIENT_PRINT_TIMESTAMP_BUFFER_SIZE_BYTES 27
 
+#define U_AT_CLIENT_CALLBACK_TASK_PRIORITY 2
+
 // Do some cross-checking
 #if (U_AT_CLIENT_CALLBACK_TASK_PRIORITY < U_AT_CLIENT_URC_TASK_PRIORITY)
 #error U_AT_CLIENT_CALLBACK_TASK_PRIORITY must be less than U_AT_CLIENT_URC_TASK_PRIORITY
 #endif
+
 
 #ifdef U_CFG_AT_CLIENT_DETAILED_DEBUG
 /** Macros for detailed debugging of buffering behaviour.
