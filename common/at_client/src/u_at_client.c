@@ -1660,10 +1660,7 @@ static bool bufferFill(uAtClientInstance_t *pClient, bool blocking)
 
     LOG_BUFFER_FILL(15);
     if (readLength > 0) {
-        printAt(pClient,
-                U_AT_CLIENT_DATA_BUFFER_PTR(pReceiveBuffer) + pReceiveBuffer->length +
-                    pReceiveBuffer->readIndex,
-                readLength, false);
+        printAt(pClient, U_AT_CLIENT_DATA_BUFFER_PTR(pReceiveBuffer) + pReceiveBuffer->length + pReceiveBuffer->readIndex, readLength, false);
         pReceiveBuffer->length += readLength;
         LOG_BUFFER_FILL(16);
     }

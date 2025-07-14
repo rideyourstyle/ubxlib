@@ -20,23 +20,23 @@
  */
 
 #ifdef U_CFG_OVERRIDE
-# include "u_cfg_override.h" // For a customer's configuration override
+#include "u_cfg_override.h" // For a customer's configuration override
 #endif
 
 /* ----------------------------------------------------------------
  * INCLUDE FILES
  * -------------------------------------------------------------- */
 
-#include "stdlib.h"    // malloc()/free().
-#include "stddef.h"    // NULL, size_t etc.
-#include "stdint.h"    // int32_t etc.
+#include "stdlib.h" // malloc()/free().
+#include "stddef.h" // NULL, size_t etc.
+#include "stdint.h" // int32_t etc.
 #include "stdbool.h"
-#include "string.h"    // memset(), memcpy()
-#include "ctype.h"     // isprint()
+#include "string.h" // memset(), memcpy()
+#include "ctype.h"  // isprint()
 
 #include "u_cfg_sw.h"
-#include "stdint.h"      // int32_t etc.
-#include "u_compiler.h"  // U_WEAK
+#include "stdint.h"     // int32_t etc.
+#include "u_compiler.h" // U_WEAK
 
 #include "u_error_common.h"
 #include "u_assert.h"
@@ -44,7 +44,13 @@
 #include "u_port.h"
 #include "u_port_os.h"
 #include "u_port_heap.h"
+
+#include <malloc.h>
+
 #include "u_port_debug.h"
+
+#include "zephyr/logging/log.h"
+LOG_MODULE_REGISTER(u_port_heap);
 
 /* ----------------------------------------------------------------
  * COMPILE-TIME MACROS
@@ -55,7 +61,7 @@
  * us to check for overruns ("DEADBEEF", readable in a hex dump on
  * a little-endian MCU, which they pretty much all are these days).
  */
-# define U_PORT_HEAP_GUARD 0xefbeaddeUL
+#define U_PORT_HEAP_GUARD 0xefbeaddeUL
 #endif
 
 /** The size of #U_PORT_HEAP_GUARD; must be 4.
@@ -69,24 +75,28 @@
 #ifndef U_PORT_HEAP_BUFFER_OVERRUN_MARKER
 /** The string to prefix a buffer overrun with.
  */
-# define U_PORT_HEAP_BUFFER_OVERRUN_MARKER " *** BUFFER OVERRUN *** "
+#define U_PORT_HEAP_BUFFER_OVERRUN_MARKER " *** BUFFER OVERRUN *** "
 #endif
 
 #ifndef U_PORT_HEAP_BUFFER_UNDERRUN_MARKER
 /** The string to prefix a buffer underrun with.
  */
-# define U_PORT_HEAP_BUFFER_UNDERRUN_MARKER " *** BUFFER UNDERRUN *** "
+#define U_PORT_HEAP_BUFFER_UNDERRUN_MARKER " *** BUFFER UNDERRUN *** "
 #endif
 
 /** Local version of the lock helper, since this can't necessarily
  * use the normal one.
  */
-#define U_PORT_HEAP_MUTEX_LOCK(x)      { gpMutexLock ? gpMutexLock(x) : uPortMutexLock(x)
+#define U_PORT_HEAP_MUTEX_LOCK(x)                                                                  \
+    {                                                                                              \
+        gpMutexLock ? gpMutexLock(x) : uPortMutexLock(x)
 
 /** Local version of the unlock helper, since this can't necessarily
  * use the normal one.
  */
-#define U_PORT_HEAP_MUTEX_UNLOCK(x)    } gpMutexUnlock ? gpMutexUnlock(x) : uPortMutexUnlock(x)
+#define U_PORT_HEAP_MUTEX_UNLOCK(x)                                                                \
+    }                                                                                              \
+    gpMutexUnlock ? gpMutexUnlock(x) : uPortMutexUnlock(x)
 
 /* ----------------------------------------------------------------
  * TYPES
@@ -119,6 +129,8 @@ typedef struct uPortHeapBlock_t {
     int32_t timeMilliseconds;
 } uPortHeapBlock_t;
 
+uint32_t uPortAllocCount = 0;
+
 /* ----------------------------------------------------------------
  * VARIABLES
  * -------------------------------------------------------------- */
@@ -145,12 +157,12 @@ static uPortMutexHandle_t gMutex = NULL;
 /** Hook for platform-specific mutex lock function, if required
  * (e.g. the Linux port needs this).
  */
-static int32_t (*gpMutexLock) (const uPortMutexHandle_t) = NULL;
+static int32_t (*gpMutexLock)(const uPortMutexHandle_t) = NULL;
 
 /** Hook for platform-specific mutex unlock function, if required
  * (e.g. the Linux port needs this).
  */
-static int32_t (*gpMutexUnlock) (const uPortMutexHandle_t) = NULL;
+static int32_t (*gpMutexUnlock)(const uPortMutexHandle_t) = NULL;
 
 #endif
 
@@ -159,24 +171,20 @@ static int32_t (*gpMutexUnlock) (const uPortMutexHandle_t) = NULL;
  * -------------------------------------------------------------- */
 
 #ifdef U_CFG_HEAP_MONITOR
-static void printBlock(const char *pPrefix, const uPortHeapBlock_t *pBlock)
+static void printBlock(const uPortHeapBlock_t *pBlock)
 {
-    if (pPrefix == NULL) {
-        pPrefix = "";
-    }
     if (pBlock != NULL) {
-        uPortLog("%sBLOCK address %p %6d byte(s) allocated by %s:%d @ %d.\n",
-                 pPrefix,
-                 pBlock + sizeof(uPortHeapBlock_t) + U_PORT_HEAP_GUARD_SIZE,
-                 pBlock->size, pBlock->pFile, pBlock->line, pBlock->timeMilliseconds);
+        LOG_INF("BLOCK address %p %6d byte(s) allocated by %s:%d @ %d.",
+                pBlock + sizeof(uPortHeapBlock_t) + U_PORT_HEAP_GUARD_SIZE, pBlock->size,
+                pBlock->pFile, pBlock->line, pBlock->timeMilliseconds);
     }
 }
 
 static void printMemory(const char *pMemory, size_t size)
 {
     for (size_t x = 0; x < size; x++, pMemory++) {
-        if (!isprint((int32_t) *pMemory)) {
-            uPortLog("[%02x]", (const unsigned char) *pMemory);
+        if (!isprint((int32_t)*pMemory)) {
+            uPortLog("[%02x]", (const unsigned char)*pMemory);
         } else {
             uPortLog("%c", *pMemory);
         }
@@ -206,8 +214,7 @@ U_WEAK void *pUPortMalloc(size_t sizeBytes)
 #ifdef U_CFG_HEAP_MONITOR
 // The malloc call that replaces pUPortMalloc() when U_CFG_HEAP_MONITOR
 // is defined,
-void *pUPortMallocMonitor(size_t sizeBytes, const char *pFile,
-                          int32_t line)
+void *pUPortMallocMonitor(size_t sizeBytes, const char *pFile, int32_t line)
 {
     void *pMemory = NULL;
     uPortHeapBlock_t *pBlock;
@@ -216,12 +223,20 @@ void *pUPortMallocMonitor(size_t sizeBytes, const char *pFile,
     size_t blockSizeBytes;
     uint32_t heapGuard = U_PORT_HEAP_GUARD;
 
+    if (sizeBytes == 29u) {
+        uPortAllocCount++;
+    }
+    if (uPortAllocCount >= 2) {
+        LOG_ERR("Alloc count: %d", uPortAllocCount);
+    }
+    LOG_INF("Number of allocated 29-byte blocks %d", uPortAllocCount);
+
     if (gMutex != NULL) {
         // Allocate enough memory for what the caller wanted,
         // plus our monitoring structure, plus two guards
-        blockSizeBytes = sizeBytes + U_PORT_HEAP_STRUCTURE_SIZE_NO_END_PACKING +
-                         (U_PORT_HEAP_GUARD_SIZE * 2);
-        pBlock = (uPortHeapBlock_t *) _pUPortMalloc(blockSizeBytes);
+        blockSizeBytes =
+            sizeBytes + U_PORT_HEAP_STRUCTURE_SIZE_NO_END_PACKING + (U_PORT_HEAP_GUARD_SIZE * 2);
+        pBlock = (uPortHeapBlock_t *)_pUPortMalloc(blockSizeBytes);
         if (pBlock != NULL) {
             // Populate the structure
             memset(pBlock, 0, sizeof(*pBlock));
@@ -229,7 +244,7 @@ void *pUPortMallocMonitor(size_t sizeBytes, const char *pFile,
             pBlock->line = line;
             pBlock->size = sizeBytes;
             pBlock->timeMilliseconds = uPortGetTickTimeMs();
-            pTmp = ((char *) pBlock) + U_PORT_HEAP_STRUCTURE_SIZE_NO_END_PACKING;
+            pTmp = ((char *)pBlock) + U_PORT_HEAP_STRUCTURE_SIZE_NO_END_PACKING;
             // Add the opening guard after the block
             memcpy(pTmp, &heapGuard, U_PORT_HEAP_GUARD_SIZE);
             pTmp += U_PORT_HEAP_GUARD_SIZE;
@@ -266,14 +281,15 @@ U_WEAK void uPortFree(void *pMemory)
 
     if ((pMemory != NULL) && (gMutex != NULL)) {
         // Wind back to the start of the block
-        pBlock = (uPortHeapBlock_t *) (((char *) pMemory) - (U_PORT_HEAP_STRUCTURE_SIZE_NO_END_PACKING +
-                                                             U_PORT_HEAP_GUARD_SIZE));
+        pBlock =
+            (uPortHeapBlock_t *)(((char *)pMemory) - (U_PORT_HEAP_STRUCTURE_SIZE_NO_END_PACKING +
+                                                      U_PORT_HEAP_GUARD_SIZE));
         // Check the guards
-        pTmp = ((char *) pMemory) - U_PORT_HEAP_GUARD_SIZE;
+        pTmp = ((char *)pMemory) - U_PORT_HEAP_GUARD_SIZE;
         if (memcmp(pTmp, &heapGuard, U_PORT_HEAP_GUARD_SIZE) != 0) {
             pMarker = U_PORT_HEAP_BUFFER_UNDERRUN_MARKER;
             uPortLog("%sexpected: ", pMarker);
-            printMemory((char *) &heapGuard, U_PORT_HEAP_GUARD_SIZE);
+            printMemory((char *)&heapGuard, U_PORT_HEAP_GUARD_SIZE);
             uPortLog(", got: ");
             printMemory(pTmp, U_PORT_HEAP_GUARD_SIZE);
             uPortLog("\n");
@@ -282,13 +298,13 @@ U_WEAK void uPortFree(void *pMemory)
         if (memcmp(pTmp, &heapGuard, U_PORT_HEAP_GUARD_SIZE) != 0) {
             pMarker = U_PORT_HEAP_BUFFER_OVERRUN_MARKER;
             uPortLog("%sexpected: ", pMarker);
-            printMemory((char *) &heapGuard, U_PORT_HEAP_GUARD_SIZE);
+            printMemory((char *)&heapGuard, U_PORT_HEAP_GUARD_SIZE);
             uPortLog(", got: ");
             printMemory(pTmp, U_PORT_HEAP_GUARD_SIZE);
             uPortLog("\n");
         }
         if (pMarker != NULL) {
-            printBlock(pMarker, pBlock);
+            printBlock(pBlock);
         }
 
         U_PORT_HEAP_MUTEX_LOCK(gMutex);
@@ -319,23 +335,18 @@ U_WEAK void uPortFree(void *pMemory)
     if (pMemory != NULL) {
         gHeapAllocCount--;
     }
+    const size_t size = malloc_usable_size(pMemory);
+    if (size == 29u) {
+        uPortAllocCount--;
+    }
     free(pMemory);
 }
 
-U_WEAK int32_t uPortHeapAllocCount()
-{
-    return gHeapAllocCount;
-}
+U_WEAK int32_t uPortHeapAllocCount() { return gHeapAllocCount; }
 
-U_WEAK void uPortHeapPerpetualAllocAdd()
-{
-    gHeapPerpetualAllocCount++;
-}
+U_WEAK void uPortHeapPerpetualAllocAdd() { gHeapPerpetualAllocCount++; }
 
-U_WEAK int32_t uPortHeapPerpetualAllocCount()
-{
-    return gHeapPerpetualAllocCount;
-}
+U_WEAK int32_t uPortHeapPerpetualAllocCount() { return gHeapPerpetualAllocCount; }
 
 // Print out the contents of the heap.
 int32_t uPortHeapDump(const char *pPrefix)
@@ -343,29 +354,25 @@ int32_t uPortHeapDump(const char *pPrefix)
     int32_t x = 0;
 
 #ifdef U_CFG_HEAP_MONITOR
-    uPortHeapBlock_t *pBlock = gpHeapBlockList;
+    const uPortHeapBlock_t *pBlock = gpHeapBlockList;
     while (pBlock != NULL) {
-        printBlock(pPrefix, pBlock);
+        printBlock(pBlock);
         pBlock = pBlock->pNext;
         x++;
     }
-    if (pPrefix == NULL) {
-        pPrefix = "";
-    }
-    uPortLog("%s%d block(s).\n", pPrefix, x);
+    LOG_INF("%d block(s)", x);
 #else
-    (void) pPrefix;
 #endif
 
     return x;
 }
 
 // Initialise heap monitoring.
-int32_t uPortHeapMonitorInit(int32_t (*pMutexCreate) (uPortMutexHandle_t *),
-                             int32_t (*pMutexLock) (const uPortMutexHandle_t),
-                             int32_t (*pMutexUnlock) (const uPortMutexHandle_t))
+int32_t uPortHeapMonitorInit(int32_t (*pMutexCreate)(uPortMutexHandle_t *),
+                             int32_t (*pMutexLock)(const uPortMutexHandle_t),
+                             int32_t (*pMutexUnlock)(const uPortMutexHandle_t))
 {
-    int32_t errorCode = (int32_t) U_ERROR_COMMON_SUCCESS;
+    int32_t errorCode = (int32_t)U_ERROR_COMMON_SUCCESS;
 
 #ifdef U_CFG_HEAP_MONITOR
     if (gMutex == NULL) {

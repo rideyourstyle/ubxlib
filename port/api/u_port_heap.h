@@ -147,7 +147,6 @@ int32_t uPortHeapPerpetualAllocCount();
 /** Print out the contents of the heap; only useful if
  * U_CFG_HEAP_MONITOR is defined.
  *
- * @param[in] pPrefix  print this before each line; may be NULL.
  * @return             the number of entries printed.
  */
 int32_t uPortHeapDump(const char *pPrefix);
