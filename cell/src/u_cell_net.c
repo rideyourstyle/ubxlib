@@ -3962,7 +3962,7 @@ int32_t uCellNetSetAuthenticationMode(uDeviceHandle_t cellHandle, uCellNetAuthen
 
         pInstance = pUCellPrivateGetInstance(cellHandle);
         errorCode = (int32_t)U_ERROR_COMMON_INVALID_PARAMETER;
-        if ((pInstance != NULL) && (mode >= 0) && (mode < U_CELL_NET_AUTHENTICATION_MODE_MAX_NUM)) {
+        if ((pInstance != NULL) && (mode < U_CELL_NET_AUTHENTICATION_MODE_MAX_NUM)) {
             errorCode = (int32_t)U_ERROR_COMMON_NOT_SUPPORTED;
             if ((mode != U_CELL_NET_AUTHENTICATION_MODE_AUTOMATIC) ||
                 U_CELL_PRIVATE_HAS(pInstance->pModule,
